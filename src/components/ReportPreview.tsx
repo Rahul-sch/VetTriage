@@ -336,7 +336,7 @@ function UrgencyBadge({
   level: 1 | 2 | 3 | 4 | 5;
   confidence: ConfidenceMetadata;
 }) {
-  const config = {
+  const config: Record<number, { label: string; className: string }> = {
     1: { label: "Routine", className: "bg-green-100 text-green-700" },
     2: { label: "Low", className: "bg-blue-100 text-blue-700" },
     3: { label: "Moderate", className: "bg-yellow-100 text-yellow-700" },
@@ -344,7 +344,25 @@ function UrgencyBadge({
     5: { label: "Emergency", className: "bg-red-100 text-red-700" },
   };
 
-  const { label, className } = config[level];
+  // Defensive: handle invalid or missing urgency level
+  const isValidLevel = typeof level === "number" && level >= 1 && level <= 5;
+  const badgeConfig = isValidLevel ? config[level] : null;
+
+  if (!badgeConfig) {
+    // Log warning for invalid urgency level
+    console.warn(`Invalid urgency level: ${level}. Expected 1-5, got:`, level);
+    // Render neutral fallback badge
+    return (
+      <span
+        className="px-3 py-1 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 bg-slate-100 text-slate-600"
+      >
+        Unknown
+        <ConfidenceIndicator confidence={confidence} />
+      </span>
+    );
+  }
+
+  const { label, className } = badgeConfig;
 
   return (
     <span
@@ -363,14 +381,34 @@ function SeverityBadge({
   severity: "mild" | "moderate" | "severe" | "critical";
   confidence: ConfidenceMetadata;
 }) {
-  const config = {
+  const config: Record<string, { className: string }> = {
     mild: { className: "bg-green-100 text-green-700" },
     moderate: { className: "bg-yellow-100 text-yellow-700" },
     severe: { className: "bg-orange-100 text-orange-700" },
     critical: { className: "bg-red-100 text-red-700" },
   };
 
-  const { className } = config[severity];
+  // Defensive: handle invalid or missing severity
+  const isValidSeverity = 
+    typeof severity === "string" && 
+    (severity === "mild" || severity === "moderate" || severity === "severe" || severity === "critical");
+  const badgeConfig = isValidSeverity ? config[severity] : null;
+
+  if (!badgeConfig) {
+    // Log warning for invalid severity
+    console.warn(`Invalid severity: ${severity}. Expected 'mild'|'moderate'|'severe'|'critical', got:`, severity);
+    // Render neutral fallback badge
+    return (
+      <span
+        className="px-2 py-0.5 rounded text-xs font-medium capitalize inline-flex items-center gap-1 bg-slate-100 text-slate-600"
+      >
+        Unknown
+        <ConfidenceIndicator confidence={confidence} />
+      </span>
+    );
+  }
+
+  const { className } = badgeConfig;
 
   return (
     <span

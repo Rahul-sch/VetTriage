@@ -89,8 +89,19 @@ export function generateIntakeReportPDF(report: IntakeReport): void {
   // Add severity and duration
   doc.setFontSize(10);
   doc.setTextColor(...COLORS.muted);
+  // Defensive: handle invalid severity values
+  const severityValue = report.severity.value;
+  const isValidSeverity = 
+    typeof severityValue === "string" && 
+    (severityValue === "mild" || severityValue === "moderate" || severityValue === "severe" || severityValue === "critical");
+  const severityDisplay = isValidSeverity ? capitalize(severityValue) : "Unknown";
+  
+  if (!isValidSeverity) {
+    console.warn(`Invalid severity in PDF: ${severityValue}. Using 'Unknown'`);
+  }
+  
   doc.text(
-    `Severity: ${capitalize(report.severity.value)} | Duration: ${report.duration.value}`,
+    `Severity: ${severityDisplay} | Duration: ${report.duration.value || "Not mentioned"}`,
     MARGIN,
     y
   );
@@ -171,19 +182,27 @@ function drawHeader(doc: jsPDF, y: number, report: IntakeReport): number {
 
   y = 35;
 
-  // Urgency badge
+  // Urgency badge (defensive: handle invalid urgency values)
   const urgency = report.urgencyLevel.value;
+  const isValidUrgency = typeof urgency === "number" && urgency >= 1 && urgency <= 5;
+  const urgencyValue = isValidUrgency ? urgency : 3; // Default to moderate if invalid
+  const urgencyLabel = isValidUrgency ? URGENCY_LABELS[urgencyValue] : "Unknown";
+  
+  if (!isValidUrgency) {
+    console.warn(`Invalid urgency level in PDF: ${urgency}. Using default (3 - Moderate)`);
+  }
+
   const badgeWidth = 45;
   const badgeX = PAGE_WIDTH - MARGIN - badgeWidth;
 
-  doc.setFillColor(...COLORS.urgencyBg[urgency]);
+  doc.setFillColor(...COLORS.urgencyBg[urgencyValue]);
   doc.roundedRect(badgeX, y - 5, badgeWidth, 10, 2, 2, "F");
 
-  doc.setTextColor(...COLORS.urgencyText[urgency]);
+  doc.setTextColor(...COLORS.urgencyText[urgencyValue]);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text(
-    `Urgency: ${URGENCY_LABELS[urgency]}`,
+    `Urgency: ${urgencyLabel}`,
     badgeX + badgeWidth / 2,
     y + 1,
     { align: "center" }
