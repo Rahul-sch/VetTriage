@@ -239,9 +239,22 @@ export function HomePage() {
     saveSession({ editedReport });
   }, []);
 
+  // Start new recording - clears previous session state
+  const handleStartRecording = useCallback(() => {
+    // Clear previous analysis results before starting new recording
+    setReport(null);
+    setAnalysisError(null);
+    resetSpeech();
+    resetAudio();
+    startRecording();
+  }, [startRecording, resetSpeech, resetAudio]);
+
   // Load test transcript for demo/debugging
   const loadTestTranscript = useCallback(() => {
     if (state !== "idle") return;
+    // Clear any previous analysis results
+    setReport(null);
+    setAnalysisError(null);
     const mockSegments = getMockTranscript();
     setSegments(mockSegments);
   }, [state, setSegments]);
@@ -313,10 +326,25 @@ export function HomePage() {
           />
         )}
 
-        {/* Show report if complete and available */}
-        {state === "complete" && report ? (
+        {/* Main content area - render based on state */}
+        {state === "processing" ? (
+          /* Loading state during analysis - always show spinner */
+          <div className="flex-1 w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-6">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                Analyzing Conversation...
+              </h3>
+              <p className="text-sm text-slate-500">
+                Extracting structured data from transcript
+              </p>
+            </div>
+          </div>
+        ) : state === "complete" && report ? (
+          /* Report available */
           <ReportPreview report={report} onReportEdit={handleReportEdit} />
         ) : state === "complete" && analysisError ? (
+          /* Analysis error */
           <div className="flex-1 w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm border-2 border-red-300 p-6">
             <div className="text-center">
               <svg
@@ -338,20 +366,32 @@ export function HomePage() {
               <p className="text-slate-600">{analysisError}</p>
             </div>
           </div>
-        ) : state === "processing" ? (
-          /* Loading state during analysis */
-          <div className="flex-1 w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-6">
+        ) : state === "complete" ? (
+          /* Fallback for complete state with no report or error - should not happen */
+          <div className="flex-1 w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm border-2 border-amber-300 p-6">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold text-slate-700 mb-2">
-                Analyzing Conversation...
+              <svg
+                className="w-12 h-12 text-amber-400 mx-auto mb-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <h3 className="text-lg font-semibold text-amber-700 mb-2">
+                No Report Available
               </h3>
-              <p className="text-sm text-slate-500">
-                Extracting structured data from transcript
+              <p className="text-slate-600 mb-4">
+                Analysis completed but no report was generated. Please try again.
               </p>
             </div>
           </div>
-        ) : state !== "complete" ? (
+        ) : (
           /* Transcript area during recording/idle */
           <TranscriptDisplay
             state={state}
@@ -364,13 +404,13 @@ export function HomePage() {
             onSegmentClick={audioUrl ? handleSegmentClick : undefined}
             hasAudio={!!audioUrl}
           />
-        ) : null}
+        )}
 
         {/* Record button */}
         <div className="py-4 flex flex-col items-center gap-3 shrink-0">
           <RecordButton
             state={state}
-            onStart={startRecording}
+            onStart={handleStartRecording}
             onStop={stopRecording}
             onReset={handleReset}
           />
