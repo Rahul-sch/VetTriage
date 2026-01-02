@@ -27,7 +27,14 @@ export function useUrgencyPulse(
   const highestUrgencyRef = useRef<UrgencyScore>(1);
   const lastAnalysisTimeRef = useRef<number>(0);
   const analysisIntervalRef = useRef<number | null>(null);
-  const isAnalyzingRef = useRef<boolean>(false); // Prevent concurrent calls
+  const isAnalyzingRef = useRef<boolean>(false);
+  // Use ref to access current segments without triggering effect re-runs
+  const segmentsRef = useRef<TranscriptSegment[]>(segments);
+
+  // Keep ref in sync with segments
+  useEffect(() => {
+    segmentsRef.current = segments;
+  }, [segments]);
 
   // Format segments into transcript text
   const formatTranscript = useCallback((segments: TranscriptSegment[]): string => {
@@ -39,13 +46,17 @@ export function useUrgencyPulse(
   // Analyze urgency from current transcript
   const analyzeUrgency = useCallback(async (transcript: string) => {
     if (!transcript.trim()) return;
-    
+
     // Prevent concurrent calls
-    if (isAnalyzingRef.current) return;
-    
+    if (isAnalyzingRef.current) {
+      return;
+    }
+
     // Minimum 5 seconds between calls to avoid rate limits
     const timeSinceLastCall = Date.now() - lastAnalysisTimeRef.current;
-    if (timeSinceLastCall < 5000) return;
+    if (timeSinceLastCall < 5000) {
+      return;
+    }
 
     isAnalyzingRef.current = true;
     try {
@@ -85,22 +96,14 @@ export function useUrgencyPulse(
       return;
     }
 
-    // Analyze immediately if we have segments
-    if (segments.length > 0) {
-      const transcript = formatTranscript(segments);
+    // Set up periodic analysis every 6 seconds
+    // Uses segmentsRef to avoid recreating interval on every segment change
+    analysisIntervalRef.current = window.setInterval(() => {
+      const transcript = formatTranscript(segmentsRef.current);
       if (transcript.trim()) {
         analyzeUrgency(transcript);
-        lastAnalysisTimeRef.current = Date.now();
       }
-    }
-
-      // Set up periodic analysis every 6 seconds (reduced frequency to avoid rate limits)
-      analysisIntervalRef.current = window.setInterval(() => {
-        const transcript = formatTranscript(segments);
-        if (transcript.trim()) {
-          analyzeUrgency(transcript);
-        }
-      }, 6000); // 6 seconds - less frequent to avoid rate limits
+    }, 6000);
 
     return () => {
       if (analysisIntervalRef.current !== null) {
@@ -108,7 +111,7 @@ export function useUrgencyPulse(
         analysisIntervalRef.current = null;
       }
     };
-  }, [isRecording, segments, formatTranscript, analyzeUrgency]);
+  }, [isRecording, formatTranscript, analyzeUrgency]);
 
   // Reset urgency when recording stops
   useEffect(() => {

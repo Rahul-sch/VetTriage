@@ -4,6 +4,7 @@ import {
   createUrgencyPrompt,
 } from "../prompts/urgency-detection";
 import { getApiKey } from "./groq";
+import { waitForRateLimit } from "./rateLimiter";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = "llama-3.3-70b-versatile";
@@ -89,6 +90,9 @@ export async function detectUrgency(
     { role: "system", content: URGENCY_DETECTION_SYSTEM_PROMPT },
     { role: "user", content: createUrgencyPrompt(transcript) },
   ];
+
+  // Wait for global rate limit before making the call
+  await waitForRateLimit();
 
   try {
     const response = await fetch(GROQ_API_URL, {

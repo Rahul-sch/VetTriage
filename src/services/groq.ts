@@ -4,6 +4,7 @@ import {
   VETERINARY_INTAKE_SYSTEM_PROMPT,
   createUserPrompt,
 } from "../prompts/veterinary-intake";
+import { waitForRateLimit } from "./rateLimiter";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = "llama-3.3-70b-versatile";
@@ -270,6 +271,9 @@ export async function analyzeTranscript(
     { role: "system", content: VETERINARY_INTAKE_SYSTEM_PROMPT },
     { role: "user", content: createUserPrompt(transcript) },
   ];
+
+  // Wait for global rate limit before making the call
+  await waitForRateLimit();
 
   try {
     const response = await fetch(GROQ_API_URL, {
