@@ -318,15 +318,19 @@ npm run preview  # Test production build locally
 
 - Tap the **Record** button to start
 - Speak naturally — the conversation is transcribed in real-time
+- **Real-Time Urgency Pulse** appears below header — updates every 6 seconds
 - Speaker changes are detected automatically (1.5s pause = switch)
 - Use **Switch Speaker** button to manually correct
+- Urgency can only escalate (never downgrade) during recording
 
 ### 3. Analysis
 
 - Tap **Stop** when done
+- You'll see "Analyzing Conversation..." with a loading spinner
 - AI analyzes the transcript and extracts:
   - Patient info (name, species, breed, age, weight)
   - Owner info
+  - **Confidence scores** for each field (hover over colored dots)
   - Chief complaint & symptoms
   - Medical history
   - Severity & urgency levels
@@ -439,6 +443,44 @@ interface TranscriptSegment {
 | Firefox            | ❌            | ✅              | ❌          |
 
 > Firefox users see a fallback message recommending Chrome.
+
+---
+
+## ⚠️ Troubleshooting
+
+### Rate Limit Errors
+
+If you see "Rate limit exceeded" errors:
+
+1. **Wait 1-2 minutes** — Groq rate limits reset quickly
+2. **Urgency pulse is throttled** — Automatically reduces API calls (6s interval, 5s cooldown)
+3. **Main analysis is prioritized** — Urgency pulse failures won't block report generation
+4. **Check your Groq usage** — Visit [Groq Console](https://console.groq.com) to monitor API usage
+
+### Blank Screen During Analysis
+
+- **Fixed!** The app now shows a loading spinner during analysis
+- If you still see a blank screen, check the browser console (F12) for errors
+- Refresh the page — your session is automatically restored from IndexedDB
+
+### Audio Not Playing
+
+- Ensure you granted microphone permissions
+- Check browser console for MediaRecorder errors
+- Try refreshing the page — audio is restored from session storage
+
+### Transcription Not Working
+
+- **Chrome/Edge/Safari only** — Firefox doesn't support Web Speech API
+- Grant microphone permissions when prompted
+- Check browser console for permission errors
+- Ensure you're using HTTPS (required for microphone access)
+
+### Session Not Restoring
+
+- Clear browser cache and try again
+- Check IndexedDB in DevTools → Application → IndexedDB → `vettriage-session`
+- Use "Reset Session" button to clear corrupted data
 
 ---
 
