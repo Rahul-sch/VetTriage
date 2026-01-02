@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import type { IntakeReport } from "../types/report";
+import type { IntakeReport, ConfidenceLevel } from "../types/report";
 import {
   formatDateTime,
   formatDateForFilename,
@@ -18,6 +18,9 @@ const COLORS = {
   text: [30, 41, 59] as [number, number, number], // slate-800
   muted: [100, 116, 139] as [number, number, number], // slate-500
   border: [203, 213, 225] as [number, number, number], // slate-300
+  confidenceHigh: [16, 185, 129] as [number, number, number], // emerald-500
+  confidenceMedium: [245, 158, 11] as [number, number, number], // amber-500
+  confidenceLow: [239, 68, 68] as [number, number, number], // red-500
   urgencyBg: {
     1: [220, 252, 231] as [number, number, number], // green-100
     2: [219, 234, 254] as [number, number, number], // blue-100
@@ -42,6 +45,17 @@ const URGENCY_LABELS: Record<1 | 2 | 3 | 4 | 5, string> = {
   5: "Emergency",
 };
 
+function getConfidenceColor(level: ConfidenceLevel): [number, number, number] {
+  switch (level) {
+    case "high":
+      return COLORS.confidenceHigh;
+    case "medium":
+      return COLORS.confidenceMedium;
+    case "low":
+      return COLORS.confidenceLow;
+  }
+}
+
 /**
  * Generate a PDF from an intake report
  */
@@ -57,32 +71,59 @@ export function generateIntakeReportPDF(report: IntakeReport): void {
   // === HEADER ===
   y = drawHeader(doc, y, report);
 
+  // === CONFIDENCE LEGEND ===
+  y = drawConfidenceLegend(doc, y);
+
   // === PATIENT & OWNER INFO ===
   y = drawPatientOwnerSection(doc, y, report);
 
   // === CHIEF COMPLAINT ===
-  y = drawSection(doc, y, "Chief Complaint", report.chiefComplaint);
+  y = drawSection(
+    doc,
+    y,
+    "Chief Complaint",
+    report.chiefComplaint.value,
+    report.chiefComplaint.confidence.level
+  );
 
   // Add severity and duration
   doc.setFontSize(10);
   doc.setTextColor(...COLORS.muted);
   doc.text(
-    `Severity: ${capitalize(report.severity)} | Duration: ${report.duration}`,
+    `Severity: ${capitalize(report.severity.value)} | Duration: ${report.duration.value}`,
     MARGIN,
     y
   );
   y += 8;
 
   // === SYMPTOMS ===
-  y = drawBulletList(doc, y, "Symptoms", report.symptoms);
+  y = drawBulletList(
+    doc,
+    y,
+    "Symptoms",
+    report.symptoms.value,
+    report.symptoms.confidence.level
+  );
 
   // === MEDICAL HISTORY ===
-  if (report.medicalHistory && report.medicalHistory !== "Not mentioned") {
-    y = drawSection(doc, y, "Medical History", report.medicalHistory);
+  if (
+    report.medicalHistory.value &&
+    report.medicalHistory.value !== "Not mentioned"
+  ) {
+    y = drawSection(
+      doc,
+      y,
+      "Medical History",
+      report.medicalHistory.value,
+      report.medicalHistory.confidence.level
+    );
   }
 
   // === MEDICATIONS & ALLERGIES ===
-  if (report.currentMedications.length > 0 || report.allergies.length > 0) {
+  if (
+    report.currentMedications.value.length > 0 ||
+    report.allergies.value.length > 0
+  ) {
     y = drawMedicationsAllergies(doc, y, report);
   }
 
@@ -90,12 +131,13 @@ export function generateIntakeReportPDF(report: IntakeReport): void {
   y = drawAssessmentSection(doc, y, report);
 
   // === RECOMMENDED ACTIONS ===
-  if (report.recommendedActions.length > 0) {
+  if (report.recommendedActions.value.length > 0) {
     y = drawNumberedList(
       doc,
       y,
       "Recommended Actions",
-      report.recommendedActions
+      report.recommendedActions.value,
+      report.recommendedActions.confidence.level
     );
   }
 
@@ -104,7 +146,7 @@ export function generateIntakeReportPDF(report: IntakeReport): void {
 
   // Generate filename and save
   const dateStr = formatDateForFilename();
-  const petName = sanitizeFilename(report.patient.name || "unknown");
+  const petName = sanitizeFilename(report.patient.name.value || "unknown");
   const filename = `VetTriage_${dateStr}_${petName}.pdf`;
 
   doc.save(filename);
@@ -130,7 +172,7 @@ function drawHeader(doc: jsPDF, y: number, report: IntakeReport): number {
   y = 35;
 
   // Urgency badge
-  const urgency = report.urgencyLevel;
+  const urgency = report.urgencyLevel.value;
   const badgeWidth = 45;
   const badgeX = PAGE_WIDTH - MARGIN - badgeWidth;
 
@@ -148,6 +190,33 @@ function drawHeader(doc: jsPDF, y: number, report: IntakeReport): number {
   );
 
   return y + 15;
+}
+
+function drawConfidenceLegend(doc: jsPDF, y: number): number {
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.muted);
+  doc.text("AI Confidence:", MARGIN, y);
+
+  const startX = MARGIN + 22;
+  const dotSize = 2;
+  const gap = 25;
+
+  // High
+  doc.setFillColor(...COLORS.confidenceHigh);
+  doc.circle(startX, y - 1, dotSize, "F");
+  doc.text("High", startX + 4, y);
+
+  // Medium
+  doc.setFillColor(...COLORS.confidenceMedium);
+  doc.circle(startX + gap, y - 1, dotSize, "F");
+  doc.text("Medium", startX + gap + 4, y);
+
+  // Low
+  doc.setFillColor(...COLORS.confidenceLow);
+  doc.circle(startX + gap * 2, y - 1, dotSize, "F");
+  doc.text("Low", startX + gap * 2 + 4, y);
+
+  return y + 8;
 }
 
 function drawPatientOwnerSection(
@@ -171,15 +240,19 @@ function drawPatientOwnerSection(
   doc.setFontSize(9);
 
   const patientLines = [
-    `Name: ${report.patient.name}`,
-    `Species: ${report.patient.species} | Breed: ${report.patient.breed}`,
-    `Age: ${report.patient.age} | Weight: ${report.patient.weight}`,
-    `Sex: ${report.patient.sex}`,
+    { text: `Name: ${report.patient.name.value}`, level: report.patient.name.confidence.level },
+    { text: `Species: ${report.patient.species.value} | Breed: ${report.patient.breed.value}`, level: report.patient.species.confidence.level },
+    { text: `Age: ${report.patient.age.value} | Weight: ${report.patient.weight.value}`, level: report.patient.age.confidence.level },
+    { text: `Sex: ${report.patient.sex.value}`, level: report.patient.sex.confidence.level },
   ];
 
   let lineY = y + 14;
   for (const line of patientLines) {
-    doc.text(line, MARGIN + 5, lineY);
+    // Confidence dot
+    doc.setFillColor(...getConfidenceColor(line.level));
+    doc.circle(MARGIN + 3, lineY - 1, 1, "F");
+    doc.setTextColor(...COLORS.text);
+    doc.text(line.text, MARGIN + 6, lineY);
     lineY += 5;
   }
 
@@ -198,14 +271,17 @@ function drawPatientOwnerSection(
   doc.setFontSize(9);
 
   const ownerLines = [
-    `Name: ${report.owner.name}`,
-    `Phone: ${report.owner.phone}`,
-    `Email: ${report.owner.email}`,
+    { text: `Name: ${report.owner.name.value}`, level: report.owner.name.confidence.level },
+    { text: `Phone: ${report.owner.phone.value}`, level: report.owner.phone.confidence.level },
+    { text: `Email: ${report.owner.email.value}`, level: report.owner.email.confidence.level },
   ];
 
   lineY = y + 14;
   for (const line of ownerLines) {
-    doc.text(line, ownerX + 5, lineY);
+    doc.setFillColor(...getConfidenceColor(line.level));
+    doc.circle(ownerX + 3, lineY - 1, 1, "F");
+    doc.setTextColor(...COLORS.text);
+    doc.text(line.text, ownerX + 6, lineY);
     lineY += 5;
   }
 
@@ -216,7 +292,8 @@ function drawSection(
   doc: jsPDF,
   y: number,
   title: string,
-  content: string
+  content: string,
+  confidence?: ConfidenceLevel
 ): number {
   // Check if we need a new page
   if (y > PAGE_HEIGHT - 50) {
@@ -227,7 +304,15 @@ function drawSection(
   doc.setTextColor(...COLORS.primary);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(title.toUpperCase(), MARGIN, y);
+
+  // Title with confidence dot
+  if (confidence) {
+    doc.setFillColor(...getConfidenceColor(confidence));
+    doc.circle(MARGIN + 2, y - 1.5, 1.5, "F");
+    doc.text(title.toUpperCase(), MARGIN + 6, y);
+  } else {
+    doc.text(title.toUpperCase(), MARGIN, y);
+  }
   y += 6;
 
   doc.setTextColor(...COLORS.text);
@@ -245,7 +330,8 @@ function drawBulletList(
   doc: jsPDF,
   y: number,
   title: string,
-  items: string[]
+  items: string[],
+  confidence?: ConfidenceLevel
 ): number {
   if (items.length === 0) return y;
 
@@ -257,7 +343,14 @@ function drawBulletList(
   doc.setTextColor(...COLORS.primary);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(title.toUpperCase(), MARGIN, y);
+
+  if (confidence) {
+    doc.setFillColor(...getConfidenceColor(confidence));
+    doc.circle(MARGIN + 2, y - 1.5, 1.5, "F");
+    doc.text(title.toUpperCase(), MARGIN + 6, y);
+  } else {
+    doc.text(title.toUpperCase(), MARGIN, y);
+  }
   y += 6;
 
   doc.setTextColor(...COLORS.text);
@@ -282,7 +375,8 @@ function drawNumberedList(
   doc: jsPDF,
   y: number,
   title: string,
-  items: string[]
+  items: string[],
+  confidence?: ConfidenceLevel
 ): number {
   if (items.length === 0) return y;
 
@@ -294,7 +388,14 @@ function drawNumberedList(
   doc.setTextColor(...COLORS.primary);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(title.toUpperCase(), MARGIN, y);
+
+  if (confidence) {
+    doc.setFillColor(...getConfidenceColor(confidence));
+    doc.circle(MARGIN + 2, y - 1.5, 1.5, "F");
+    doc.text(title.toUpperCase(), MARGIN + 6, y);
+  } else {
+    doc.text(title.toUpperCase(), MARGIN, y);
+  }
   y += 6;
 
   doc.setTextColor(...COLORS.text);
@@ -331,15 +432,18 @@ function drawMedicationsAllergies(
   doc.setTextColor(...COLORS.primary);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("CURRENT MEDICATIONS", MARGIN, y);
+
+  doc.setFillColor(...getConfidenceColor(report.currentMedications.confidence.level));
+  doc.circle(MARGIN + 2, y - 1, 1.5, "F");
+  doc.text("CURRENT MEDICATIONS", MARGIN + 6, y);
 
   doc.setTextColor(...COLORS.text);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
 
   let medY = y + 5;
-  if (report.currentMedications.length > 0) {
-    for (const med of report.currentMedications) {
+  if (report.currentMedications.value.length > 0) {
+    for (const med of report.currentMedications.value) {
       doc.text(`• ${med}`, MARGIN, medY);
       medY += 4;
     }
@@ -353,15 +457,18 @@ function drawMedicationsAllergies(
   doc.setTextColor(...COLORS.primary);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("ALLERGIES", allergyX, y);
+
+  doc.setFillColor(...getConfidenceColor(report.allergies.confidence.level));
+  doc.circle(allergyX + 2, y - 1, 1.5, "F");
+  doc.text("ALLERGIES", allergyX + 6, y);
 
   doc.setTextColor(...COLORS.text);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
 
   let allergyY = y + 5;
-  if (report.allergies.length > 0) {
-    for (const allergy of report.allergies) {
+  if (report.allergies.value.length > 0) {
+    for (const allergy of report.allergies.value) {
       doc.text(`• ${allergy}`, allergyX, allergyY);
       allergyY += 4;
     }
@@ -388,7 +495,7 @@ function drawAssessmentSection(
   doc.setDrawColor(...COLORS.primary);
 
   const assessmentLines = doc.splitTextToSize(
-    report.assessment,
+    report.assessment.value,
     CONTENT_WIDTH - 10
   );
   const boxHeight = assessmentLines.length * 5 + 15;
@@ -398,7 +505,11 @@ function drawAssessmentSection(
   doc.setTextColor(...COLORS.primary);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("CLINICAL ASSESSMENT", MARGIN + 5, y + 8);
+
+  // Confidence dot for assessment
+  doc.setFillColor(...getConfidenceColor(report.assessment.confidence.level));
+  doc.circle(MARGIN + 4, y + 5, 1.5, "F");
+  doc.text("CLINICAL ASSESSMENT", MARGIN + 8, y + 8);
 
   doc.setTextColor(...COLORS.text);
   doc.setFontSize(10);
@@ -419,7 +530,7 @@ function drawFooter(doc: jsPDF): void {
   doc.setFont("helvetica", "normal");
   doc.text("Generated by VetTriage", MARGIN, y);
   doc.text(
-    "This report is AI-generated and should be reviewed by a veterinary professional.",
+    "AI-generated report with confidence indicators. Review by a veterinary professional recommended.",
     PAGE_WIDTH - MARGIN,
     y,
     { align: "right" }

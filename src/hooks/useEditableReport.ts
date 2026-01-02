@@ -10,7 +10,7 @@ interface UseEditableReportReturn {
   editedFields: Set<string>;
   /** Check if a field was edited */
   isEdited: (fieldPath: string) => boolean;
-  /** Update a field value */
+  /** Update a field value (handles ConfidentField.value automatically) */
   updateField: (fieldPath: string, value: unknown) => void;
   /** Reset all edits */
   resetEdits: () => void;
@@ -20,6 +20,7 @@ interface UseEditableReportReturn {
 
 /**
  * Hook to manage editable report state with change tracking
+ * Handles the new ConfidentField structure by updating .value properties
  */
 export function useEditableReport(
   initialReport: IntakeReport
@@ -37,12 +38,31 @@ export function useEditableReport(
     (fieldPath: string, value: unknown) => {
       setReport((prev) => {
         const newReport = deepClone(prev);
-        setNestedValue(newReport, fieldPath, value);
+        
+        // Handle nested paths like "patient.name" -> need to update patient.name.value
+        const target = getNestedValue(newReport, fieldPath);
+        
+        // If target is a ConfidentField object, update its .value
+        if (target && typeof target === "object" && "value" in target && "confidence" in target) {
+          (target as { value: unknown }).value = value;
+        } else {
+          // For non-ConfidentField paths (shouldn't happen with new structure)
+          setNestedValue(newReport, fieldPath, value);
+        }
+        
         return newReport;
       });
 
       // Check if value differs from original
-      const originalValue = getNestedValue(originalReport, fieldPath);
+      const originalTarget = getNestedValue(originalReport, fieldPath);
+      let originalValue: unknown;
+      
+      if (originalTarget && typeof originalTarget === "object" && "value" in originalTarget) {
+        originalValue = (originalTarget as { value: unknown }).value;
+      } else {
+        originalValue = originalTarget;
+      }
+      
       const isChanged = JSON.stringify(value) !== JSON.stringify(originalValue);
 
       setEditedFields((prev) => {
@@ -108,4 +128,3 @@ function setNestedValue(obj: unknown, path: string, value: unknown): void {
   const lastKey = keys[keys.length - 1]!;
   current[lastKey] = value;
 }
-

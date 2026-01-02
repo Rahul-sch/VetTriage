@@ -1,4 +1,5 @@
-import type { IntakeReport, AnalysisResponse } from "../types/report";
+import type { IntakeReport, AnalysisResponse, ConfidentField, ConfidenceLevel } from "../types/report";
+import { getConfidenceLevel } from "../types/report";
 import {
   VETERINARY_INTAKE_SYSTEM_PROMPT,
   createUserPrompt,
@@ -51,9 +52,69 @@ export function hasApiKey(): boolean {
 }
 
 /**
+ * Raw confidence structure from AI
+ */
+interface RawConfidence {
+  score: number;
+  note?: string | null;
+}
+
+/**
+ * Raw confident field from AI
+ */
+interface RawConfidentField<T> {
+  value: T;
+  confidence: RawConfidence;
+}
+
+/**
+ * Normalize a confident field, adding the derived level
+ */
+function normalizeConfidentField<T>(
+  raw: RawConfidentField<T> | T | undefined,
+  defaultValue: T
+): ConfidentField<T> {
+  // Handle case where AI returns value directly without confidence wrapper
+  if (raw === undefined || raw === null) {
+    return {
+      value: defaultValue,
+      confidence: {
+        score: 0,
+        level: "low" as ConfidenceLevel,
+        note: "Not provided in transcript",
+      },
+    };
+  }
+
+  // Check if it's a confident field structure
+  if (typeof raw === "object" && raw !== null && "value" in raw && "confidence" in raw) {
+    const field = raw as RawConfidentField<T>;
+    const score = Math.max(0, Math.min(1, field.confidence.score || 0));
+    return {
+      value: field.value ?? defaultValue,
+      confidence: {
+        score,
+        level: getConfidenceLevel(score),
+        note: field.confidence.note ?? undefined,
+      },
+    };
+  }
+
+  // Fallback: AI returned plain value without confidence wrapper
+  return {
+    value: raw as T,
+    confidence: {
+      score: 0.7,
+      level: "medium" as ConfidenceLevel,
+      note: "Confidence not provided by AI",
+    },
+  };
+}
+
+/**
  * Parse JSON safely, handling common LLM output issues
  */
-function parseJsonSafely(text: string): IntakeReport | null {
+function parseJsonSafely(text: string): Record<string, unknown> | null {
   // Remove any markdown code blocks if present
   let cleaned = text.trim();
   if (cleaned.startsWith("```json")) {
@@ -67,7 +128,7 @@ function parseJsonSafely(text: string): IntakeReport | null {
   cleaned = cleaned.trim();
 
   try {
-    return JSON.parse(cleaned) as IntakeReport;
+    return JSON.parse(cleaned) as Record<string, unknown>;
   } catch {
     console.error("Failed to parse JSON:", cleaned);
     return null;
@@ -75,9 +136,81 @@ function parseJsonSafely(text: string): IntakeReport | null {
 }
 
 /**
+ * Transform raw AI response into normalized IntakeReport
+ */
+function transformToReport(raw: Record<string, unknown>): IntakeReport {
+  const patient = (raw.patient || {}) as Record<string, unknown>;
+  const owner = (raw.owner || {}) as Record<string, unknown>;
+
+  return {
+    patient: {
+      name: normalizeConfidentField(patient.name as RawConfidentField<string>, "Not mentioned"),
+      species: normalizeConfidentField(patient.species as RawConfidentField<string>, "Not mentioned"),
+      breed: normalizeConfidentField(patient.breed as RawConfidentField<string>, "Not mentioned"),
+      age: normalizeConfidentField(patient.age as RawConfidentField<string>, "Not mentioned"),
+      weight: normalizeConfidentField(patient.weight as RawConfidentField<string>, "Not mentioned"),
+      sex: normalizeConfidentField(patient.sex as RawConfidentField<string>, "Not mentioned"),
+    },
+    owner: {
+      name: normalizeConfidentField(owner.name as RawConfidentField<string>, "Not mentioned"),
+      phone: normalizeConfidentField(owner.phone as RawConfidentField<string>, "Not mentioned"),
+      email: normalizeConfidentField(owner.email as RawConfidentField<string>, "Not mentioned"),
+    },
+    chiefComplaint: normalizeConfidentField(
+      raw.chiefComplaint as RawConfidentField<string>,
+      "Not mentioned"
+    ),
+    symptoms: normalizeConfidentField(
+      raw.symptoms as RawConfidentField<string[]>,
+      []
+    ),
+    duration: normalizeConfidentField(
+      raw.duration as RawConfidentField<string>,
+      "Not mentioned"
+    ),
+    severity: normalizeConfidentField(
+      raw.severity as RawConfidentField<"mild" | "moderate" | "severe" | "critical">,
+      "moderate"
+    ),
+    medicalHistory: normalizeConfidentField(
+      raw.medicalHistory as RawConfidentField<string>,
+      "Not mentioned"
+    ),
+    currentMedications: normalizeConfidentField(
+      raw.currentMedications as RawConfidentField<string[]>,
+      []
+    ),
+    allergies: normalizeConfidentField(
+      raw.allergies as RawConfidentField<string[]>,
+      []
+    ),
+    vitalSigns: normalizeConfidentField(
+      raw.vitalSigns as RawConfidentField<string>,
+      "Not recorded"
+    ),
+    assessment: normalizeConfidentField(
+      raw.assessment as RawConfidentField<string>,
+      "Pending examination"
+    ),
+    recommendedActions: normalizeConfidentField(
+      raw.recommendedActions as RawConfidentField<string[]>,
+      []
+    ),
+    urgencyLevel: normalizeConfidentField(
+      raw.urgencyLevel as RawConfidentField<1 | 2 | 3 | 4 | 5>,
+      3
+    ),
+    notes: normalizeConfidentField(
+      raw.notes as RawConfidentField<string>,
+      ""
+    ),
+  };
+}
+
+/**
  * Validate that the parsed object has the expected structure
  */
-function validateReport(obj: unknown): obj is IntakeReport {
+function validateReport(obj: unknown): boolean {
   if (!obj || typeof obj !== "object") return false;
 
   const report = obj as Record<string, unknown>;
@@ -98,26 +231,6 @@ function validateReport(obj: unknown): obj is IntakeReport {
       console.warn(`Missing required field: ${field}`);
       return false;
     }
-  }
-
-  // Validate urgency level is 1-5
-  const urgency = report.urgencyLevel;
-  if (
-    typeof urgency !== "number" ||
-    urgency < 1 ||
-    urgency > 5 ||
-    !Number.isInteger(urgency)
-  ) {
-    console.warn("Invalid urgency level:", urgency);
-    // Fix it instead of failing
-    (obj as IntakeReport).urgencyLevel = 3;
-  }
-
-  // Validate severity
-  const validSeverities = ["mild", "moderate", "severe", "critical"];
-  if (!validSeverities.includes(report.severity as string)) {
-    console.warn("Invalid severity:", report.severity);
-    (obj as IntakeReport).severity = "moderate";
   }
 
   return true;
@@ -169,7 +282,7 @@ export async function analyzeTranscript(
         model: MODEL,
         messages,
         temperature: 0.1, // Low temperature for consistent structured output
-        max_tokens: 2000,
+        max_tokens: 3000, // Increased for confidence metadata
       }),
     });
 
@@ -218,9 +331,12 @@ export async function analyzeTranscript(
       };
     }
 
+    // Transform to normalized report with confidence levels
+    const report = transformToReport(parsed);
+
     return {
       success: true,
-      report: parsed,
+      report,
     };
   } catch (error) {
     console.error("Groq API error:", error);
