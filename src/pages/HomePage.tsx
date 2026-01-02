@@ -24,6 +24,7 @@ import {
   calculateRelativeTimes,
   findActiveSegment,
 } from "../types/transcript";
+import { getMockTranscript } from "../utils/mockTranscript";
 import type { IntakeReport } from "../types/report";
 
 export function HomePage() {
@@ -238,6 +239,19 @@ export function HomePage() {
     saveSession({ editedReport });
   }, []);
 
+  // Load test transcript for demo/debugging
+  const loadTestTranscript = useCallback(() => {
+    if (state !== "idle") return;
+    const mockSegments = getMockTranscript();
+    setSegments(mockSegments);
+  }, [state, setSegments]);
+
+  // Trigger analysis of loaded transcript
+  const analyzeLoadedTranscript = useCallback(() => {
+    if (state !== "idle" || segments.length === 0) return;
+    setState("processing");
+  }, [state, segments.length, setState]);
+
   // Show fallback for unsupported browsers
   if (!isSupported) {
     return <UnsupportedBrowser />;
@@ -353,13 +367,32 @@ export function HomePage() {
         ) : null}
 
         {/* Record button */}
-        <div className="py-4 flex justify-center shrink-0">
+        <div className="py-4 flex flex-col items-center gap-3 shrink-0">
           <RecordButton
             state={state}
             onStart={startRecording}
             onStop={stopRecording}
             onReset={handleReset}
           />
+
+          {/* Test transcript buttons - dev/demo only */}
+          {state === "idle" && segments.length === 0 && (
+            <button
+              onClick={loadTestTranscript}
+              className="px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors"
+            >
+              🧪 Load Test Transcript
+            </button>
+          )}
+
+          {state === "idle" && segments.length > 0 && (
+            <button
+              onClick={analyzeLoadedTranscript}
+              className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors"
+            >
+              Analyze Transcript
+            </button>
+          )}
         </div>
       </main>
     </div>
