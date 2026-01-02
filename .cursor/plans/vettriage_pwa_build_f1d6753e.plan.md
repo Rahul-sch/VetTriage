@@ -17,12 +17,12 @@ todos:
       - phase-2-ui
   - id: phase-4-groq
     content: Add Groq AI analysis with structured intake extraction
-    status: in_progress
+    status: completed
     dependencies:
       - phase-3-speech
   - id: phase-5-pdf
     content: Implement jsPDF report generation and download
-    status: pending
+    status: in_progress
     dependencies:
       - phase-4-groq
   - id: phase-6-pwa

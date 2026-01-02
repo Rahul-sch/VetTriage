@@ -1,4 +1,5 @@
 import type { IntakeReport } from "../types/report";
+import { DownloadButton } from "./DownloadButton";
 
 interface ReportPreviewProps {
   report: IntakeReport;
@@ -7,10 +8,13 @@ interface ReportPreviewProps {
 export function ReportPreview({ report }: ReportPreviewProps) {
   return (
     <div className="w-full max-w-2xl mx-auto space-y-4">
-      {/* Header with urgency */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-800">Intake Report</h2>
-        <UrgencyBadge level={report.urgencyLevel} />
+      {/* Header with urgency and download */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-slate-800">Intake Report</h2>
+          <UrgencyBadge level={report.urgencyLevel} />
+        </div>
+        <DownloadButton report={report} />
       </div>
 
       {/* Patient Info Card */}
@@ -120,6 +124,11 @@ export function ReportPreview({ report }: ReportPreviewProps) {
           <p className="text-slate-700">{report.notes}</p>
         </Card>
       )}
+
+      {/* Bottom download button for mobile */}
+      <div className="pt-4 pb-2">
+        <DownloadButton report={report} />
+      </div>
     </div>
   );
 }
@@ -180,7 +189,7 @@ function UrgencyBadge({ level }: { level: 1 | 2 | 3 | 4 | 5 }) {
     <span
       className={`px-3 py-1 rounded-full text-sm font-semibold ${className}`}
     >
-      Urgency: {label} ({level}/5)
+      {label} ({level}/5)
     </span>
   );
 }
@@ -207,4 +216,3 @@ function SeverityBadge({
     </span>
   );
 }
-
