@@ -27,7 +27,7 @@ interface GroqResponse {
  */
 export function getApiKey(): string | null {
   // First check environment variable (for development)
-  const envKey = import.meta.env.VITE_GROQ_API_KEY;
+  const envKey = import.meta.env?.VITE_GROQ_API_KEY as string | undefined;
   if (envKey && envKey !== "your_key_here") {
     return envKey;
   }
@@ -110,14 +110,14 @@ function validateReport(obj: unknown): obj is IntakeReport {
   ) {
     console.warn("Invalid urgency level:", urgency);
     // Fix it instead of failing
-    (report as IntakeReport).urgencyLevel = 3;
+    (obj as IntakeReport).urgencyLevel = 3;
   }
 
   // Validate severity
   const validSeverities = ["mild", "moderate", "severe", "critical"];
   if (!validSeverities.includes(report.severity as string)) {
     console.warn("Invalid severity:", report.severity);
-    (report as IntakeReport).severity = "moderate";
+    (obj as IntakeReport).severity = "moderate";
   }
 
   return true;
@@ -129,6 +129,14 @@ function validateReport(obj: unknown): obj is IntakeReport {
 export async function analyzeTranscript(
   transcript: string
 ): Promise<AnalysisResponse> {
+  // Check online status first
+  if (!navigator.onLine) {
+    return {
+      success: false,
+      error: "You're offline. AI analysis requires an internet connection.",
+    };
+  }
+
   const apiKey = getApiKey();
 
   if (!apiKey) {
@@ -223,4 +231,3 @@ export async function analyzeTranscript(
     };
   }
 }
-

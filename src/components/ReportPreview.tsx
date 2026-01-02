@@ -146,7 +146,9 @@ function Card({
     <div
       className={`
         rounded-xl p-4 shadow-sm border
-        ${highlight ? "bg-teal-50 border-teal-200" : "bg-white border-slate-200"}
+        ${
+          highlight ? "bg-teal-50 border-teal-200" : "bg-white border-slate-200"
+        }
       `}
     >
       <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">

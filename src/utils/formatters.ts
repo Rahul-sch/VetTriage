@@ -41,4 +41,3 @@ export function sanitizeFilename(str: string): string {
     .replace(/^-|-$/g, "")
     .slice(0, 50);
 }
-

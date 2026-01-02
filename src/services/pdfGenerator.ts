@@ -82,10 +82,7 @@ export function generateIntakeReportPDF(report: IntakeReport): void {
   }
 
   // === MEDICATIONS & ALLERGIES ===
-  if (
-    report.currentMedications.length > 0 ||
-    report.allergies.length > 0
-  ) {
+  if (report.currentMedications.length > 0 || report.allergies.length > 0) {
     y = drawMedicationsAllergies(doc, y, report);
   }
 
@@ -94,7 +91,12 @@ export function generateIntakeReportPDF(report: IntakeReport): void {
 
   // === RECOMMENDED ACTIONS ===
   if (report.recommendedActions.length > 0) {
-    y = drawNumberedList(doc, y, "Recommended Actions", report.recommendedActions);
+    y = drawNumberedList(
+      doc,
+      y,
+      "Recommended Actions",
+      report.recommendedActions
+    );
   }
 
   // === FOOTER ===
@@ -385,7 +387,10 @@ function drawAssessmentSection(
   doc.setFillColor(240, 253, 250); // teal-50
   doc.setDrawColor(...COLORS.primary);
 
-  const assessmentLines = doc.splitTextToSize(report.assessment, CONTENT_WIDTH - 10);
+  const assessmentLines = doc.splitTextToSize(
+    report.assessment,
+    CONTENT_WIDTH - 10
+  );
   const boxHeight = assessmentLines.length * 5 + 15;
 
   doc.roundedRect(MARGIN, y, CONTENT_WIDTH, boxHeight, 2, 2, "FD");
@@ -424,4 +429,3 @@ function drawFooter(doc: jsPDF): void {
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
-

@@ -65,7 +65,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
       setInterimTranscript("");
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       setIsListening(false);
       setInterimTranscript("");
 
@@ -84,7 +84,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
       }
     };
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = "";
       let currentInterim = "";
 

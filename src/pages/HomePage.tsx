@@ -5,6 +5,7 @@ import { TranscriptDisplay } from "../components/TranscriptDisplay";
 import { ReportPreview } from "../components/ReportPreview";
 import { ApiKeyModal } from "../components/ApiKeyModal";
 import { UnsupportedBrowser } from "../components/UnsupportedBrowser";
+import { OfflineBanner } from "../components/OfflineBanner";
 import { useRecordingState } from "../hooks/useRecordingState";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { analyzeTranscript, hasApiKey } from "../services/groq";
@@ -71,6 +72,9 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Offline banner */}
+      <OfflineBanner />
+
       <Header state={state} />
 
       {/* API Key Modal */}

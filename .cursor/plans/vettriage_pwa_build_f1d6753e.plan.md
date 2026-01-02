@@ -22,12 +22,12 @@ todos:
       - phase-3-speech
   - id: phase-5-pdf
     content: Implement jsPDF report generation and download
-    status: in_progress
+    status: completed
     dependencies:
       - phase-4-groq
   - id: phase-6-pwa
     content: Configure PWA features, add API key modal and session history
-    status: pending
+    status: in_progress
     dependencies:
       - phase-5-pdf
 ---
@@ -61,25 +61,7 @@ flowchart LR
 
 ## Tech Stack
 
-| Layer | Technology | Rationale |
-
-|-------|------------|-----------|
-
-| Framework | React 18 + TypeScript | Fast dev, strong typing |
-
-| Build | Vite | Fastest HMR, PWA plugin |
-
-| Styling | Tailwind CSS | Rapid mobile-first UI |
-
-| Transcription | Web Speech API | Browser-native, free, real-time |
-
-| AI Analysis | Groq (Llama 3.3 70B) | Fast inference, free tier |
-
-| PDF | jsPDF | Pure client-side, no server |
-
-| Storage | IndexedDB (Dexie.js) | Offline persistence |
-
-| PWA | vite-plugin-pwa | Service worker, manifest |---
+| Layer | Technology | Rationale ||-------|------------|-----------|| Framework | React 18 + TypeScript | Fast dev, strong typing || Build | Vite | Fastest HMR, PWA plugin || Styling | Tailwind CSS | Rapid mobile-first UI || Transcription | Web Speech API | Browser-native, free, real-time || AI Analysis | Groq (Llama 3.3 70B) | Fast inference, free tier || PDF | jsPDF | Pure client-side, no server || Storage | IndexedDB (Dexie.js) | Offline persistence || PWA | vite-plugin-pwa | Service worker, manifest |---
 
 ## Phase 1: Project Scaffold
 
@@ -152,26 +134,27 @@ flowchart LR
 
 - `src/types/report.ts` - TypeScript interfaces:
   ```typescript
-    interface IntakeReport {
-      patient: { name, species, breed, age, weight }
-      owner: { name, phone, email }
-      chiefComplaint: string
-      symptoms: string[]
-      medicalHistory: string
-      currentMedications: string[]
-      assessment: string
-      urgencyLevel: 1 | 2 | 3 | 4 | 5
-    }
+        interface IntakeReport {
+          patient: { name, species, breed, age, weight }
+          owner: { name, phone, email }
+          chiefComplaint: string
+          symptoms: string[]
+          medicalHistory: string
+          currentMedications: string[]
+          assessment: string
+          urgencyLevel: 1 | 2 | 3 | 4 | 5
+        }
   ```
+
+
+
 
 - `src/services/groq.ts` - API client with `analyzeTranscript(text): Promise<IntakeReport>`
 - `src/prompts/veterinary-intake.ts` - System prompt for structured extraction
 - `src/components/AnalyzeButton.tsx` - Triggers analysis
 - `src/components/ReportPreview.tsx` - Displays extracted data in cards
 
-**API:** Groq Chat Completions (`https://api.groq.com/openai/v1/chat/completions`)
-
-**Model:** `llama-3.3-70b-versatile`**Test:** Paste sample transcript, click Analyze, see structured data displayed**Commit:** `feat: Groq AI transcript analysis`---
+**API:** Groq Chat Completions (`https://api.groq.com/openai/v1/chat/completions`)**Model:** `llama-3.3-70b-versatile`**Test:** Paste sample transcript, click Analyze, see structured data displayed**Commit:** `feat: Groq AI transcript analysis`---
 
 ## Phase 5: PDF Report Generation
 
@@ -225,48 +208,10 @@ flowchart LR
 
 ## Deferred to v2
 
-| Feature | Reason |
-
-|---------|--------|
-
-| Backend + Postgres | Not needed for demo, add for multi-user |
-
-| Audio file recording | Whisper fallback, add if Web Speech insufficient |
-
-| User authentication | Single-user demo doesn't need it |
-
-| Report editing | Keep v1 simple, auto-generated only |
-
-| HIPAA compliance | Requires legal review, backend changes |
-
-| Multi-language | English-only for demo |---
+| Feature | Reason ||---------|--------|| Backend + Postgres | Not needed for demo, add for multi-user || Audio file recording | Whisper fallback, add if Web Speech insufficient || User authentication | Single-user demo doesn't need it || Report editing | Keep v1 simple, auto-generated only || HIPAA compliance | Requires legal review, backend changes || Multi-language | English-only for demo |---
 
 ## API Summary
 
-| API | Purpose | Auth |
-
-|-----|---------|------|
-
-| Web Speech API | Transcription | None (browser native) |
-
-| Groq API | AI analysis | API key in .env |
-
-| jsPDF | PDF generation | None (client-side library) |---
+| API | Purpose | Auth ||-----|---------|------|| Web Speech API | Transcription | None (browser native) || Groq API | AI analysis | API key in .env || jsPDF | PDF generation | None (client-side library) |---
 
 ## Estimated Timeline
-
-| Phase | Duration |
-
-|-------|----------|
-
-| Phase 1: Scaffold | 1 hour |
-
-| Phase 2: UI | 2-3 hours |
-
-| Phase 3: Speech | 2-3 hours |
-
-| Phase 4: Groq | 2-3 hours |
-
-| Phase 5: PDF | 2-3 hours |
-
-| Phase 6: PWA | 3-4 hours |
