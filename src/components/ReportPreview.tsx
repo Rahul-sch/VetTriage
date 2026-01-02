@@ -1,11 +1,17 @@
 import type { IntakeReport } from "../types/report";
 import { DownloadButton } from "./DownloadButton";
+import { EditableField } from "./EditableField";
+import { EditableList } from "./EditableList";
+import { useEditableReport } from "../hooks/useEditableReport";
 
 interface ReportPreviewProps {
   report: IntakeReport;
 }
 
-export function ReportPreview({ report }: ReportPreviewProps) {
+export function ReportPreview({ report: initialReport }: ReportPreviewProps) {
+  const { report, isEdited, updateField, hasEdits, resetEdits } =
+    useEditableReport(initialReport);
+
   return (
     <div className="w-full max-w-2xl mx-auto space-y-4">
       {/* Header with urgency and download */}
@@ -13,121 +19,209 @@ export function ReportPreview({ report }: ReportPreviewProps) {
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-slate-800">Intake Report</h2>
           <UrgencyBadge level={report.urgencyLevel} />
+          {hasEdits && (
+            <button
+              onClick={resetEdits}
+              className="text-xs px-2 py-1 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded"
+            >
+              Reset edits
+            </button>
+          )}
         </div>
         <DownloadButton report={report} />
       </div>
 
+      {/* Edit instructions */}
+      <p className="text-xs text-slate-500 bg-slate-100 px-3 py-2 rounded-lg">
+        💡 Click any field to edit. Changes are reflected in the PDF.
+      </p>
+
       {/* Patient Info Card */}
       <Card title="Patient Information">
         <InfoGrid>
-          <InfoItem label="Name" value={report.patient.name} />
-          <InfoItem label="Species" value={report.patient.species} />
-          <InfoItem label="Breed" value={report.patient.breed} />
-          <InfoItem label="Age" value={report.patient.age} />
-          <InfoItem label="Weight" value={report.patient.weight} />
-          <InfoItem label="Sex" value={report.patient.sex} />
+          <EditableInfoItem
+            label="Name"
+            value={report.patient.name}
+            isEdited={isEdited("patient.name")}
+            onSave={(v) => updateField("patient.name", v)}
+          />
+          <EditableInfoItem
+            label="Species"
+            value={report.patient.species}
+            isEdited={isEdited("patient.species")}
+            onSave={(v) => updateField("patient.species", v)}
+          />
+          <EditableInfoItem
+            label="Breed"
+            value={report.patient.breed}
+            isEdited={isEdited("patient.breed")}
+            onSave={(v) => updateField("patient.breed", v)}
+          />
+          <EditableInfoItem
+            label="Age"
+            value={report.patient.age}
+            isEdited={isEdited("patient.age")}
+            onSave={(v) => updateField("patient.age", v)}
+          />
+          <EditableInfoItem
+            label="Weight"
+            value={report.patient.weight}
+            isEdited={isEdited("patient.weight")}
+            onSave={(v) => updateField("patient.weight", v)}
+          />
+          <EditableInfoItem
+            label="Sex"
+            value={report.patient.sex}
+            isEdited={isEdited("patient.sex")}
+            onSave={(v) => updateField("patient.sex", v)}
+          />
         </InfoGrid>
       </Card>
 
       {/* Owner Info Card */}
       <Card title="Owner Information">
         <InfoGrid>
-          <InfoItem label="Name" value={report.owner.name} />
-          <InfoItem label="Phone" value={report.owner.phone} />
-          <InfoItem label="Email" value={report.owner.email} />
+          <EditableInfoItem
+            label="Name"
+            value={report.owner.name}
+            isEdited={isEdited("owner.name")}
+            onSave={(v) => updateField("owner.name", v)}
+          />
+          <EditableInfoItem
+            label="Phone"
+            value={report.owner.phone}
+            isEdited={isEdited("owner.phone")}
+            onSave={(v) => updateField("owner.phone", v)}
+          />
+          <EditableInfoItem
+            label="Email"
+            value={report.owner.email}
+            isEdited={isEdited("owner.email")}
+            onSave={(v) => updateField("owner.email", v)}
+          />
         </InfoGrid>
       </Card>
 
       {/* Chief Complaint */}
       <Card title="Chief Complaint">
-        <p className="text-slate-700">{report.chiefComplaint}</p>
+        <EditableField
+          value={report.chiefComplaint}
+          onSave={(v) => updateField("chiefComplaint", v)}
+          isEdited={isEdited("chiefComplaint")}
+          multiline
+          className="text-slate-700"
+        />
         <div className="mt-2 flex items-center gap-2">
           <SeverityBadge severity={report.severity} />
           <span className="text-sm text-slate-500">
-            Duration: {report.duration}
+            Duration:{" "}
+            <EditableField
+              value={report.duration}
+              onSave={(v) => updateField("duration", v)}
+              isEdited={isEdited("duration")}
+              className="inline text-sm"
+            />
           </span>
         </div>
       </Card>
 
       {/* Symptoms */}
       <Card title="Symptoms">
-        {report.symptoms.length > 0 ? (
-          <ul className="list-disc list-inside text-slate-700 space-y-1">
-            {report.symptoms.map((symptom, i) => (
-              <li key={i}>{symptom}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-slate-500 italic">No symptoms recorded</p>
-        )}
+        <EditableList
+          items={report.symptoms}
+          onSave={(v) => updateField("symptoms", v)}
+          isEdited={isEdited("symptoms")}
+          placeholder="No symptoms recorded"
+        />
       </Card>
 
       {/* Medical History */}
       <Card title="Medical History">
-        <p className="text-slate-700">{report.medicalHistory}</p>
+        <EditableField
+          value={report.medicalHistory}
+          onSave={(v) => updateField("medicalHistory", v)}
+          isEdited={isEdited("medicalHistory")}
+          multiline
+          className="text-slate-700"
+        />
       </Card>
 
       {/* Medications & Allergies */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card title="Current Medications">
-          {report.currentMedications.length > 0 ? (
-            <ul className="list-disc list-inside text-slate-700 space-y-1">
-              {report.currentMedications.map((med, i) => (
-                <li key={i}>{med}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-slate-500 italic">None</p>
-          )}
+          <EditableList
+            items={report.currentMedications}
+            onSave={(v) => updateField("currentMedications", v)}
+            isEdited={isEdited("currentMedications")}
+            placeholder="None"
+          />
         </Card>
         <Card title="Allergies">
-          {report.allergies.length > 0 ? (
-            <ul className="list-disc list-inside text-slate-700 space-y-1">
-              {report.allergies.map((allergy, i) => (
-                <li key={i}>{allergy}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-slate-500 italic">None known</p>
-          )}
+          <EditableList
+            items={report.allergies}
+            onSave={(v) => updateField("allergies", v)}
+            isEdited={isEdited("allergies")}
+            placeholder="None known"
+          />
         </Card>
       </div>
 
       {/* Vital Signs */}
       {report.vitalSigns && report.vitalSigns !== "Not mentioned" && (
         <Card title="Vital Signs">
-          <p className="text-slate-700">{report.vitalSigns}</p>
+          <EditableField
+            value={report.vitalSigns}
+            onSave={(v) => updateField("vitalSigns", v)}
+            isEdited={isEdited("vitalSigns")}
+            className="text-slate-700"
+          />
         </Card>
       )}
 
       {/* Assessment */}
       <Card title="Clinical Assessment" highlight>
-        <p className="text-slate-700">{report.assessment}</p>
+        <EditableField
+          value={report.assessment}
+          onSave={(v) => updateField("assessment", v)}
+          isEdited={isEdited("assessment")}
+          multiline
+          className="text-slate-700"
+        />
       </Card>
 
       {/* Recommended Actions */}
       <Card title="Recommended Actions">
-        {report.recommendedActions.length > 0 ? (
-          <ol className="list-decimal list-inside text-slate-700 space-y-1">
-            {report.recommendedActions.map((action, i) => (
-              <li key={i}>{action}</li>
-            ))}
-          </ol>
-        ) : (
-          <p className="text-slate-500 italic">No actions specified</p>
-        )}
+        <EditableList
+          items={report.recommendedActions}
+          onSave={(v) => updateField("recommendedActions", v)}
+          isEdited={isEdited("recommendedActions")}
+          ordered
+          placeholder="No actions specified"
+        />
       </Card>
 
       {/* Notes */}
-      {report.notes && report.notes !== "Not mentioned" && (
+      {(report.notes && report.notes !== "Not mentioned") || hasEdits ? (
         <Card title="Additional Notes">
-          <p className="text-slate-700">{report.notes}</p>
+          <EditableField
+            value={report.notes || ""}
+            onSave={(v) => updateField("notes", v)}
+            isEdited={isEdited("notes")}
+            multiline
+            className="text-slate-700"
+            placeholder="Add notes..."
+          />
         </Card>
-      )}
+      ) : null}
 
       {/* Bottom download button for mobile */}
       <div className="pt-4 pb-2">
         <DownloadButton report={report} />
+        {hasEdits && (
+          <p className="text-center text-xs text-slate-500 mt-2">
+            PDF will include your edits
+          </p>
+        )}
       </div>
     </div>
   );
@@ -146,9 +240,7 @@ function Card({
     <div
       className={`
         rounded-xl p-4 shadow-sm border
-        ${
-          highlight ? "bg-teal-50 border-teal-200" : "bg-white border-slate-200"
-        }
+        ${highlight ? "bg-teal-50 border-teal-200" : "bg-white border-slate-200"}
       `}
     >
       <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
@@ -167,11 +259,27 @@ function InfoGrid({ children }: { children: React.ReactNode }) {
   );
 }
 
-function InfoItem({ label, value }: { label: string; value: string }) {
+function EditableInfoItem({
+  label,
+  value,
+  isEdited,
+  onSave,
+}: {
+  label: string;
+  value: string;
+  isEdited: boolean;
+  onSave: (value: string) => void;
+}) {
   return (
     <div>
       <span className="text-xs text-slate-500">{label}</span>
-      <p className="text-slate-700 font-medium">{value || "—"}</p>
+      <EditableField
+        value={value || ""}
+        onSave={onSave}
+        isEdited={isEdited}
+        className="text-slate-700 font-medium"
+        placeholder="—"
+      />
     </div>
   );
 }
