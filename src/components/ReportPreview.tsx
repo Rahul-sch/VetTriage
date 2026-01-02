@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { IntakeReport } from "../types/report";
 import { DownloadButton } from "./DownloadButton";
 import { EditableField } from "./EditableField";
@@ -6,11 +7,20 @@ import { useEditableReport } from "../hooks/useEditableReport";
 
 interface ReportPreviewProps {
   report: IntakeReport;
+  /** Called when user edits the report (for persistence) */
+  onReportEdit?: (editedReport: IntakeReport) => void;
 }
 
-export function ReportPreview({ report: initialReport }: ReportPreviewProps) {
+export function ReportPreview({ report: initialReport, onReportEdit }: ReportPreviewProps) {
   const { report, isEdited, updateField, hasEdits, resetEdits } =
     useEditableReport(initialReport);
+
+  // Notify parent when report is edited
+  useEffect(() => {
+    if (hasEdits && onReportEdit) {
+      onReportEdit(report);
+    }
+  }, [report, hasEdits, onReportEdit]);
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-4">

@@ -13,6 +13,11 @@ import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { analyzeTranscript, hasApiKey } from "../services/groq";
 import {
+  saveSession,
+  loadSession,
+  clearSession,
+} from "../services/sessionStorage";
+import {
   formatTranscriptForAnalysis,
   calculateRelativeTimes,
   findActiveSegment,
@@ -20,7 +25,7 @@ import {
 import type { IntakeReport } from "../types/report";
 
 export function HomePage() {
-  const { state, startRecording, stopRecording, completeProcessing, reset } =
+  const { state, startRecording, stopRecording, completeProcessing, reset, setState } =
     useRecordingState();
   const {
     isSupported,
@@ -32,13 +37,17 @@ export function HomePage() {
     stopListening,
     toggleSpeaker,
     reset: resetSpeech,
+    setSegments,
   } = useSpeechRecognition();
 
   const {
     audioUrl,
+    audioBlob,
+    audioMimeType,
     startTime: recordingStartTime,
     startRecording: startAudioRecording,
     stopRecording: stopAudioRecording,
+    restoreAudio,
     reset: resetAudio,
   } = useAudioRecorder();
 
@@ -46,6 +55,7 @@ export function HomePage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [needsApiKey, setNeedsApiKey] = useState(!hasApiKey());
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [sessionRestored, setSessionRestored] = useState(false);
 
   // Ref for audio player to allow seeking
   const audioSeekTimeRef = useRef<number | null>(null);
@@ -61,6 +71,79 @@ export function HomePage() {
     if (!audioUrl) return -1;
     return findActiveSegment(segmentsWithTimes, audioCurrentTime);
   }, [segmentsWithTimes, audioCurrentTime, audioUrl]);
+
+  // Restore session on mount
+  useEffect(() => {
+    async function restoreSession() {
+      try {
+        const session = await loadSession();
+        if (session && (session.segments.length > 0 || session.report)) {
+          // Restore segments
+          if (session.segments.length > 0 && setSegments) {
+            setSegments(session.segments);
+          }
+
+          // Restore audio
+          if (session.audioBlob) {
+            restoreAudio(
+              session.audioBlob,
+              session.audioMimeType,
+              session.recordingStartTime
+            );
+          }
+
+          // Restore report
+          if (session.report) {
+            setReport(session.editedReport || session.report);
+          }
+
+          // Set state to complete if we have a report
+          if (session.report && setState) {
+            setState("complete");
+          }
+
+          console.log("Session restored from IndexedDB");
+        }
+      } catch (error) {
+        console.error("Failed to restore session:", error);
+      } finally {
+        setSessionRestored(true);
+      }
+    }
+
+    restoreSession();
+  }, [restoreAudio, setSegments, setState]);
+
+  // Save session when segments change
+  useEffect(() => {
+    if (!sessionRestored) return;
+    if (segments.length === 0) return;
+
+    saveSession({
+      segments,
+      recordingStartTime,
+    });
+  }, [segments, recordingStartTime, sessionRestored]);
+
+  // Save session when audio is recorded
+  useEffect(() => {
+    if (!sessionRestored) return;
+    if (!audioBlob) return;
+
+    saveSession({
+      audioBlob,
+      audioMimeType,
+      recordingStartTime,
+    });
+  }, [audioBlob, audioMimeType, recordingStartTime, sessionRestored]);
+
+  // Save session when report changes
+  useEffect(() => {
+    if (!sessionRestored) return;
+    if (!report) return;
+
+    saveSession({ report });
+  }, [report, sessionRestored]);
 
   // Start speech and audio recording together
   useEffect(() => {
@@ -97,7 +180,11 @@ export function HomePage() {
     }
   }, [state, segments, completeProcessing]);
 
-  const handleReset = useCallback(() => {
+  const handleReset = useCallback(async () => {
+    // Clear IndexedDB session
+    await clearSession();
+    
+    // Reset all state
     reset();
     resetSpeech();
     resetAudio();
@@ -105,6 +192,8 @@ export function HomePage() {
     setAnalysisError(null);
     setAudioCurrentTime(0);
     audioSeekTimeRef.current = null;
+    
+    console.log("Session cleared");
   }, [reset, resetSpeech, resetAudio]);
 
   const handleApiKeySet = useCallback(() => {
@@ -127,6 +216,11 @@ export function HomePage() {
     },
     []
   );
+
+  // Handle report edit - save to session
+  const handleReportEdit = useCallback((editedReport: IntakeReport) => {
+    saveSession({ editedReport });
+  }, []);
 
   // Show fallback for unsupported browsers
   if (!isSupported) {
@@ -178,7 +272,7 @@ export function HomePage() {
 
         {/* Show report if complete and available */}
         {state === "complete" && report ? (
-          <ReportPreview report={report} />
+          <ReportPreview report={report} onReportEdit={handleReportEdit} />
         ) : state === "complete" && analysisError ? (
           <div className="flex-1 w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm border-2 border-red-300 p-6">
             <div className="text-center">

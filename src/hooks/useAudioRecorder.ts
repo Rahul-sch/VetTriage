@@ -5,6 +5,10 @@ interface UseAudioRecorderReturn {
   isRecording: boolean;
   /** Recorded audio blob URL (available after stop) */
   audioUrl: string | null;
+  /** Recorded audio blob (for persistence) */
+  audioBlob: Blob | null;
+  /** Audio MIME type */
+  audioMimeType: string | null;
   /** Recording duration in seconds */
   duration: number;
   /** Start time of recording (for timestamp sync) */
@@ -13,6 +17,8 @@ interface UseAudioRecorderReturn {
   startRecording: () => Promise<void>;
   /** Stop recording */
   stopRecording: () => void;
+  /** Restore audio from a blob (for session restore) */
+  restoreAudio: (blob: Blob, mimeType: string | null, startTimeMs: number | null) => void;
   /** Clear recorded audio */
   reset: () => void;
   /** Error message */
@@ -22,6 +28,8 @@ interface UseAudioRecorderReturn {
 export function useAudioRecorder(): UseAudioRecorderReturn {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioMimeType, setAudioMimeType] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,13 +71,14 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
 
       mediaRecorder.onstop = () => {
         // Create blob from collected chunks
-        const blob = new Blob(chunksRef.current, {
-          type: mediaRecorder.mimeType || "audio/webm",
-        });
+        const finalMimeType = mediaRecorder.mimeType || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: finalMimeType });
 
         if (blob.size > 0) {
           const url = URL.createObjectURL(blob);
           setAudioUrl(url);
+          setAudioBlob(blob);
+          setAudioMimeType(finalMimeType);
         }
 
         setDuration((Date.now() - startTimeRef.current) / 1000);
@@ -106,6 +115,19 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     setIsRecording(false);
   }, []);
 
+  const restoreAudio = useCallback((blob: Blob, mimeType: string | null, startTimeMs: number | null) => {
+    // Revoke any existing URL
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+
+    const url = URL.createObjectURL(blob);
+    setAudioUrl(url);
+    setAudioBlob(blob);
+    setAudioMimeType(mimeType);
+    setStartTime(startTimeMs);
+  }, [audioUrl]);
+
   const reset = useCallback(() => {
     // Stop any ongoing recording
     const recorder = mediaRecorderRef.current;
@@ -125,6 +147,8 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     }
 
     setAudioUrl(null);
+    setAudioBlob(null);
+    setAudioMimeType(null);
     setDuration(0);
     setStartTime(null);
     setError(null);
@@ -136,10 +160,13 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   return {
     isRecording,
     audioUrl,
+    audioBlob,
+    audioMimeType,
     duration,
     startTime,
     startRecording,
     stopRecording,
+    restoreAudio,
     reset,
     error,
   };

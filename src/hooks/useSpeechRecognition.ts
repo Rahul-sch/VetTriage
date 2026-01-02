@@ -35,6 +35,8 @@ interface UseSpeechRecognitionReturn {
   toggleSpeaker: () => void;
   /** Clear transcript and errors */
   reset: () => void;
+  /** Set segments directly (for session restore) */
+  setSegments: (segments: TranscriptSegment[]) => void;
 }
 
 export function useSpeechRecognition(): UseSpeechRecognitionReturn {
@@ -248,5 +250,6 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
     stopListening,
     toggleSpeaker,
     reset,
+    setSegments,
   };
 }

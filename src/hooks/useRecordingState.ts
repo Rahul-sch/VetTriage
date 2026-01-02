@@ -13,6 +13,7 @@ interface UseRecordingStateReturn {
   startProcessing: () => void;
   completeProcessing: () => void;
   reset: () => void;
+  setState: (state: RecordingState) => void;
 }
 
 export function useRecordingState(): UseRecordingStateReturn {
@@ -53,5 +54,6 @@ export function useRecordingState(): UseRecordingStateReturn {
     startProcessing,
     completeProcessing,
     reset,
+    setState,
   };
 }
