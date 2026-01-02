@@ -1,3 +1,4 @@
+import { useRef, useEffect } from "react";
 import type { RecordingState } from "../hooks/useRecordingState";
 import type { SpeechError } from "../hooks/useSpeechRecognition";
 import type { TranscriptSegment, Speaker } from "../types/transcript";
@@ -9,6 +10,12 @@ interface TranscriptDisplayProps {
   interimTranscript: string;
   error: SpeechError | null;
   onToggleSpeaker?: () => void;
+  /** Index of currently active segment (for playback highlighting) */
+  activeSegmentIndex?: number;
+  /** Callback when a segment is clicked for audio seeking */
+  onSegmentClick?: (segmentIndex: number, relativeTime: number) => void;
+  /** Whether audio playback is available */
+  hasAudio?: boolean;
 }
 
 export function TranscriptDisplay({
@@ -18,9 +25,23 @@ export function TranscriptDisplay({
   interimTranscript,
   error,
   onToggleSpeaker,
+  activeSegmentIndex = -1,
+  onSegmentClick,
+  hasAudio = false,
 }: TranscriptDisplayProps) {
   const isRecording = state === "recording";
   const hasContent = segments.length > 0 || interimTranscript.trim().length > 0;
+  const activeSegmentRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to active segment during playback
+  useEffect(() => {
+    if (activeSegmentIndex >= 0 && activeSegmentRef.current) {
+      activeSegmentRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [activeSegmentIndex]);
 
   // Error display
   if (error) {
@@ -80,23 +101,62 @@ export function TranscriptDisplay({
         {hasContent ? (
           <div className="space-y-3">
             {/* Render each segment */}
-            {segments.map((segment, i) => (
-              <div key={i} className="flex gap-2">
-                <SpeakerBadge speaker={segment.speaker} compact />
-                <p
+            {segments.map((segment, i) => {
+              const isActive = i === activeSegmentIndex;
+              const isClickable =
+                hasAudio &&
+                onSegmentClick &&
+                segment.relativeTime !== undefined;
+
+              return (
+                <div
+                  key={i}
+                  ref={isActive ? activeSegmentRef : null}
+                  onClick={() => {
+                    if (isClickable && segment.relativeTime !== undefined) {
+                      onSegmentClick(i, segment.relativeTime);
+                    }
+                  }}
                   className={`
-                    flex-1 leading-relaxed
-                    ${segment.speaker === "vet" ? "text-teal-800" : "text-amber-800"}
+                    flex gap-2 p-2 -mx-2 rounded-lg transition-all
+                    ${isActive ? "bg-teal-50 ring-2 ring-teal-300" : ""}
+                    ${isClickable ? "cursor-pointer hover:bg-slate-50" : ""}
                   `}
                 >
-                  {segment.text}
-                </p>
-              </div>
-            ))}
+                  {/* Timestamp */}
+                  {segment.relativeTime !== undefined && (
+                    <span className="text-xs text-slate-400 font-mono shrink-0 pt-1">
+                      {formatTime(segment.relativeTime)}
+                    </span>
+                  )}
+
+                  <SpeakerBadge speaker={segment.speaker} compact />
+                  <p
+                    className={`
+                      flex-1 leading-relaxed
+                      ${segment.speaker === "vet" ? "text-teal-800" : "text-amber-800"}
+                      ${isActive ? "font-medium" : ""}
+                    `}
+                  >
+                    {segment.text}
+                  </p>
+
+                  {/* Play indicator for clickable segments */}
+                  {isClickable && !isActive && (
+                    <span className="opacity-0 group-hover:opacity-100 text-slate-400">
+                      <PlaySmallIcon />
+                    </span>
+                  )}
+                </div>
+              );
+            })}
 
             {/* Interim transcript */}
             {interimTranscript && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 p-2 -mx-2">
+                <span className="text-xs text-slate-400 font-mono shrink-0 pt-1">
+                  --:--
+                </span>
                 <SpeakerBadge speaker={currentSpeaker} compact />
                 <p
                   className={`
@@ -137,10 +197,21 @@ export function TranscriptDisplay({
             <span className="w-3 h-3 rounded-full bg-amber-500" />
             <span className="text-xs text-slate-600">Owner</span>
           </div>
+          {hasAudio && (
+            <span className="text-xs text-slate-400 ml-auto">
+              Click to jump
+            </span>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 function SpeakerBadge({
@@ -175,6 +246,14 @@ function SpeakerBadge({
     >
       {isVet ? "Vet" : "Owner"}
     </span>
+  );
+}
+
+function PlaySmallIcon() {
+  return (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M8 5v14l11-7z" />
+    </svg>
   );
 }
 

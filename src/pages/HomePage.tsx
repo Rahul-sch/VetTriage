@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Header } from "../components/Header";
 import { RecordButton } from "../components/RecordButton";
 import { TranscriptDisplay } from "../components/TranscriptDisplay";
@@ -6,10 +6,16 @@ import { ReportPreview } from "../components/ReportPreview";
 import { ApiKeyModal } from "../components/ApiKeyModal";
 import { UnsupportedBrowser } from "../components/UnsupportedBrowser";
 import { OfflineBanner } from "../components/OfflineBanner";
+import { AudioPlayer } from "../components/AudioPlayer";
 import { useRecordingState } from "../hooks/useRecordingState";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
+import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import { analyzeTranscript, hasApiKey } from "../services/groq";
-import { formatTranscriptForAnalysis } from "../types/transcript";
+import {
+  formatTranscriptForAnalysis,
+  calculateRelativeTimes,
+  findActiveSegment,
+} from "../types/transcript";
 import type { IntakeReport } from "../types/report";
 
 export function HomePage() {
@@ -27,18 +33,47 @@ export function HomePage() {
     reset: resetSpeech,
   } = useSpeechRecognition();
 
+  const {
+    audioUrl,
+    startTime: recordingStartTime,
+    startRecording: startAudioRecording,
+    stopRecording: stopAudioRecording,
+    reset: resetAudio,
+  } = useAudioRecorder();
+
   const [report, setReport] = useState<IntakeReport | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [needsApiKey, setNeedsApiKey] = useState(!hasApiKey());
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
 
-  // Sync speech recognition with recording state
+  // Calculate segments with relative times
+  const segmentsWithTimes = useMemo(() => {
+    if (!recordingStartTime) return segments;
+    return calculateRelativeTimes(segments, recordingStartTime);
+  }, [segments, recordingStartTime]);
+
+  // Find active segment during playback
+  const activeSegmentIndex = useMemo(() => {
+    if (!audioUrl) return -1;
+    return findActiveSegment(segmentsWithTimes, audioCurrentTime);
+  }, [segmentsWithTimes, audioCurrentTime, audioUrl]);
+
+  // Sync speech recognition and audio recording with recording state
   useEffect(() => {
     if (state === "recording") {
       startListening();
+      startAudioRecording();
     } else {
       stopListening();
+      stopAudioRecording();
     }
-  }, [state, startListening, stopListening]);
+  }, [
+    state,
+    startListening,
+    stopListening,
+    startAudioRecording,
+    stopAudioRecording,
+  ]);
 
   // Trigger analysis when entering processing state
   useEffect(() => {
@@ -63,13 +98,30 @@ export function HomePage() {
   const handleReset = useCallback(() => {
     reset();
     resetSpeech();
+    resetAudio();
     setReport(null);
     setAnalysisError(null);
-  }, [reset, resetSpeech]);
+    setAudioCurrentTime(0);
+  }, [reset, resetSpeech, resetAudio]);
 
   const handleApiKeySet = useCallback(() => {
     setNeedsApiKey(false);
   }, []);
+
+  const handleAudioTimeUpdate = useCallback((time: number) => {
+    setAudioCurrentTime(time);
+  }, []);
+
+  const handleAudioSeek = useCallback((time: number) => {
+    setAudioCurrentTime(time);
+  }, []);
+
+  const handleSegmentClick = useCallback(
+    (_index: number, relativeTime: number) => {
+      setAudioCurrentTime(relativeTime);
+    },
+    []
+  );
 
   // Show fallback for unsupported browsers
   if (!isSupported) {
@@ -86,7 +138,19 @@ export function HomePage() {
       {/* API Key Modal */}
       {needsApiKey && <ApiKeyModal onKeySet={handleApiKeySet} />}
 
-      <main className="flex-1 flex flex-col p-4 gap-6 overflow-y-auto">
+      <main className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
+        {/* Audio player - show when recording is complete and we have audio */}
+        {audioUrl && state !== "recording" && (
+          <div className="w-full max-w-2xl mx-auto">
+            <AudioPlayer
+              audioUrl={audioUrl}
+              currentTime={audioCurrentTime}
+              onTimeUpdate={handleAudioTimeUpdate}
+              onSeek={handleAudioSeek}
+            />
+          </div>
+        )}
+
         {/* Show report if complete and available */}
         {state === "complete" && report ? (
           <ReportPreview report={report} />
@@ -116,11 +180,14 @@ export function HomePage() {
           /* Transcript area during recording/idle */
           <TranscriptDisplay
             state={state}
-            segments={segments}
+            segments={segmentsWithTimes}
             currentSpeaker={currentSpeaker}
             interimTranscript={interimTranscript}
             error={speechError}
             onToggleSpeaker={state === "recording" ? toggleSpeaker : undefined}
+            activeSegmentIndex={activeSegmentIndex}
+            onSegmentClick={audioUrl ? handleSegmentClick : undefined}
+            hasAudio={!!audioUrl}
           />
         )}
 
