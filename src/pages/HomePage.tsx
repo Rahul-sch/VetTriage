@@ -25,7 +25,11 @@ import {
   findActiveSegment,
 } from "../types/transcript";
 import { getMockTranscript } from "../utils/mockTranscript";
+import { isInCooldown, getCooldownRemaining } from "../services/rateLimiter";
 import type { IntakeReport } from "../types/report";
+
+// Feature flag: Real-Time Urgency Pulse (disabled for stability)
+const ENABLE_URGENCY_PULSE = false;
 
 export function HomePage() {
   const { state, startRecording, stopRecording, completeProcessing, reset, setState } =
@@ -59,14 +63,20 @@ export function HomePage() {
   const [needsApiKey, setNeedsApiKey] = useState(!hasApiKey());
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [sessionRestored, setSessionRestored] = useState(false);
+  const [isTestTranscriptMode, setIsTestTranscriptMode] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
   // Ref for audio player to allow seeking
   const audioSeekTimeRef = useRef<number | null>(null);
+  
+  // Single-flight lock for runAnalysis
+  const isRunningAnalysisRef = useRef<boolean>(false);
 
-  // Real-time urgency pulse during recording
+  // Real-time urgency pulse during recording (DISABLED via feature flag)
+  // Always call hook (React rules), but pass false to prevent any API calls
   const { urgency, justEscalated, resetEscalation } = useUrgencyPulse(
     segments,
-    state === "recording"
+    ENABLE_URGENCY_PULSE && state === "recording" && !isTestTranscriptMode
   );
 
   // Calculate segments with relative times
@@ -169,38 +179,78 @@ export function HomePage() {
     }
   }, [state, startListening, stopListening, startAudioRecording, stopAudioRecording]);
 
-  // Trigger analysis when entering processing state
+  // Update cooldown timer
   useEffect(() => {
-    if (state === "processing" && segments.length > 0) {
-      setAnalysisError(null);
+    if (!isInCooldown()) {
+      setCooldownSeconds(0);
+      return;
+    }
 
+    // Update immediately
+    setCooldownSeconds(getCooldownRemaining());
+
+    // Update every second
+    const interval = window.setInterval(() => {
+      const remaining = getCooldownRemaining();
+      setCooldownSeconds(remaining);
+      if (remaining <= 0) {
+        window.clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [analysisError]); // Re-check when error changes (429 might set cooldown)
+
+  // Run analysis directly - called from stopRecording and analyzeLoadedTranscript
+  const runAnalysis = useCallback(async () => {
+    // Single-flight lock: prevent duplicate calls
+    if (isRunningAnalysisRef.current) {
+      console.log("runAnalysis: already in progress, skipping duplicate call");
+      return;
+    }
+
+    if (segments.length === 0) {
+      completeProcessing();
+      return;
+    }
+
+    isRunningAnalysisRef.current = true;
+    setState("processing");
+    setAnalysisError(null);
+
+    // Minimal delay (urgency pulse disabled, so no in-flight requests to wait for)
+    const delayMs = isTestTranscriptMode ? 100 : 200;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+    try {
       // Format transcript with speaker labels for AI
       const formattedTranscript = formatTranscriptForAnalysis(segments);
+      const result = await analyzeTranscript(formattedTranscript);
 
-      analyzeTranscript(formattedTranscript)
-        .then((result) => {
-          if (result.success) {
-            setReport(result.report);
-            completeProcessing();
-          } else {
-            setAnalysisError(result.error);
-            completeProcessing();
-          }
-        })
-        .catch((error) => {
-          console.error("Analysis error:", error);
-          setAnalysisError(
-            error instanceof Error ? error.message : "Unknown error occurred"
-          );
-          completeProcessing();
-        });
+      if (result.success) {
+        setReport(result.report);
+      } else {
+        setAnalysisError(result.error || "Analysis failed");
+        // Check if cooldown was set
+        setCooldownSeconds(getCooldownRemaining());
+      }
+    } catch (error) {
+      console.error("Analysis error:", error);
+      setAnalysisError(
+        error instanceof Error ? error.message : "Unknown error occurred"
+      );
+    } finally {
+      // Always complete processing to prevent stuck state
+      completeProcessing();
+      // Always release the lock
+      isRunningAnalysisRef.current = false;
     }
-  }, [state, segments, completeProcessing]);
+  }, [segments, isTestTranscriptMode, setState, completeProcessing]);
 
   const handleReset = useCallback(async () => {
     // Clear IndexedDB session
     await clearSession();
-    
+
     // Reset all state
     reset();
     resetSpeech();
@@ -209,7 +259,9 @@ export function HomePage() {
     setAnalysisError(null);
     setAudioCurrentTime(0);
     audioSeekTimeRef.current = null;
-    
+    setIsTestTranscriptMode(false);
+    setCooldownSeconds(0);
+
     console.log("Session cleared");
   }, [reset, resetSpeech, resetAudio]);
 
@@ -244,6 +296,7 @@ export function HomePage() {
     // Clear previous analysis results before starting new recording
     setReport(null);
     setAnalysisError(null);
+    setIsTestTranscriptMode(false);
     resetSpeech();
     resetAudio();
     startRecording();
@@ -255,6 +308,7 @@ export function HomePage() {
     // Clear any previous analysis results
     setReport(null);
     setAnalysisError(null);
+    setIsTestTranscriptMode(true);
     const mockSegments = getMockTranscript();
     setSegments(mockSegments);
   }, [state, setSegments]);
@@ -262,8 +316,8 @@ export function HomePage() {
   // Trigger analysis of loaded transcript
   const analyzeLoadedTranscript = useCallback(() => {
     if (state !== "idle" || segments.length === 0) return;
-    setState("processing");
-  }, [state, segments.length, setState]);
+    runAnalysis();
+  }, [state, segments.length, runAnalysis]);
 
   // Show fallback for unsupported browsers
   if (!isSupported) {
@@ -288,8 +342,8 @@ export function HomePage() {
       {/* API Key Modal */}
       {needsApiKey && <ApiKeyModal onKeySet={handleApiKeySet} />}
 
-      {/* Real-time Urgency Pulse - show during recording */}
-      {state === "recording" && (
+      {/* Real-Time Urgency Pulse (DISABLED via feature flag) */}
+      {ENABLE_URGENCY_PULSE && state === "recording" && (
         <div className="w-full max-w-2xl mx-auto px-4 pt-2">
           <div className="flex justify-center">
             <UrgencyPulse
@@ -364,6 +418,11 @@ export function HomePage() {
                 Analysis Failed
               </h3>
               <p className="text-slate-600">{analysisError}</p>
+              {cooldownSeconds > 0 && (
+                <p className="text-sm text-amber-600 mt-2">
+                  Retry available in {cooldownSeconds} seconds...
+                </p>
+              )}
             </div>
           </div>
         ) : state === "complete" ? (
@@ -411,7 +470,11 @@ export function HomePage() {
           <RecordButton
             state={state}
             onStart={handleStartRecording}
-            onStop={stopRecording}
+            onStop={() => {
+              stopRecording();
+              // Run analysis immediately after stopping
+              setTimeout(() => runAnalysis(), 100);
+            }}
             onReset={handleReset}
           />
 
@@ -428,9 +491,16 @@ export function HomePage() {
           {state === "idle" && segments.length > 0 && (
             <button
               onClick={analyzeLoadedTranscript}
-              className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors"
+              disabled={cooldownSeconds > 0}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                cooldownSeconds > 0
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  : "text-white bg-teal-600 hover:bg-teal-700"
+              }`}
             >
-              Analyze Transcript
+              {cooldownSeconds > 0
+                ? `Wait ${cooldownSeconds}s...`
+                : "Analyze Transcript"}
             </button>
           )}
         </div>

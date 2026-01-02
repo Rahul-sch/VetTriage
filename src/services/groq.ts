@@ -4,10 +4,13 @@ import {
   VETERINARY_INTAKE_SYSTEM_PROMPT,
   createUserPrompt,
 } from "../prompts/veterinary-intake";
-import { waitForRateLimit } from "./rateLimiter";
+import { waitForRateLimit, markRequestComplete, setCooldown } from "./rateLimiter";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = "llama-3.3-70b-versatile";
+
+// Single-flight lock: prevent analyzeTranscript from running multiple times simultaneously
+let isAnalyzing = false;
 
 interface GroqMessage {
   role: "system" | "user" | "assistant";
@@ -243,39 +246,51 @@ function validateReport(obj: unknown): boolean {
 export async function analyzeTranscript(
   transcript: string
 ): Promise<AnalysisResponse> {
-  // Check online status first
-  if (!navigator.onLine) {
+  // Single-flight lock: prevent concurrent calls
+  if (isAnalyzing) {
+    console.log("analyzeTranscript: already in progress, skipping duplicate call");
     return {
       success: false,
-      error: "You're offline. AI analysis requires an internet connection.",
+      error: "Analysis already in progress. Please wait.",
     };
   }
 
-  const apiKey = getApiKey();
-
-  if (!apiKey) {
-    return {
-      success: false,
-      error: "No API key configured. Please add your Groq API key.",
-    };
-  }
-
-  if (!transcript.trim()) {
-    return {
-      success: false,
-      error: "No transcript to analyze.",
-    };
-  }
-
-  const messages: GroqMessage[] = [
-    { role: "system", content: VETERINARY_INTAKE_SYSTEM_PROMPT },
-    { role: "user", content: createUserPrompt(transcript) },
-  ];
-
-  // Wait for global rate limit before making the call
-  await waitForRateLimit();
+  isAnalyzing = true;
 
   try {
+    // Check online status first
+    if (!navigator.onLine) {
+      return {
+        success: false,
+        error: "You're offline. AI analysis requires an internet connection.",
+      };
+    }
+
+    const apiKey = getApiKey();
+
+    if (!apiKey) {
+      return {
+        success: false,
+        error: "No API key configured. Please add your Groq API key.",
+      };
+    }
+
+    if (!transcript.trim()) {
+      return {
+        success: false,
+        error: "No transcript to analyze.",
+      };
+    }
+
+    const messages: GroqMessage[] = [
+      { role: "system", content: VETERINARY_INTAKE_SYSTEM_PROMPT },
+      { role: "user", content: createUserPrompt(transcript) },
+    ];
+
+    // Wait for global rate limit before making the call
+    await waitForRateLimit();
+
+    console.log("GROQ_CALL");
     const response = await fetch(GROQ_API_URL, {
       method: "POST",
       headers: {
@@ -298,9 +313,11 @@ export async function analyzeTranscript(
         };
       }
       if (response.status === 429) {
+        // Set 15 second cooldown on rate limit error
+        setCooldown(15);
         return {
           success: false,
-          error: "Rate limit exceeded. Please wait a moment and try again.",
+          error: "Rate limit exceeded. Please wait 15 seconds and try again.",
         };
       }
       return {
@@ -349,5 +366,10 @@ export async function analyzeTranscript(
       error:
         error instanceof Error ? error.message : "Unknown error occurred.",
     };
+  } finally {
+    // Always mark request complete to release the lock
+    markRequestComplete();
+    // Always release the single-flight lock
+    isAnalyzing = false;
   }
 }
