@@ -8,9 +8,11 @@ import { UnsupportedBrowser } from "../components/UnsupportedBrowser";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { AudioPlayer } from "../components/AudioPlayer";
 import { CollapsibleTranscript } from "../components/CollapsibleTranscript";
+import { UrgencyPulse } from "../components/UrgencyPulse";
 import { useRecordingState } from "../hooks/useRecordingState";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
+import { useUrgencyPulse } from "../hooks/useUrgencyPulse";
 import { analyzeTranscript, hasApiKey } from "../services/groq";
 import {
   saveSession,
@@ -59,6 +61,12 @@ export function HomePage() {
 
   // Ref for audio player to allow seeking
   const audioSeekTimeRef = useRef<number | null>(null);
+
+  // Real-time urgency pulse during recording
+  const { urgency, justEscalated, resetEscalation } = useUrgencyPulse(
+    segments,
+    state === "recording"
+  );
 
   // Calculate segments with relative times
   const segmentsWithTimes = useMemo(() => {
@@ -244,6 +252,19 @@ export function HomePage() {
 
       {/* API Key Modal */}
       {needsApiKey && <ApiKeyModal onKeySet={handleApiKeySet} />}
+
+      {/* Real-time Urgency Pulse - show during recording */}
+      {state === "recording" && (
+        <div className="w-full max-w-2xl mx-auto px-4 pt-2">
+          <div className="flex justify-center">
+            <UrgencyPulse
+              urgency={urgency}
+              justEscalated={justEscalated}
+              onEscalationAcknowledged={resetEscalation}
+            />
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
         {/* Audio player - show when recording is complete and we have audio */}

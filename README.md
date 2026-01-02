@@ -14,12 +14,47 @@
 | -------------------------- | -------------------------------------------------------------- |
 | 🎙️ **Voice Recording**     | Real-time transcription using Web Speech API                   |
 | 👥 **Speaker Diarization** | Automatically distinguishes Vet vs Owner based on speech turns |
+| ⚡ **Real-Time Urgency Pulse** | Live urgency assessment during recording with visual indicators |
+| 🎯 **AI Confidence Scoring** | Transparent confidence levels (high/medium/low) for all fields |
 | 🤖 **AI Analysis**         | Groq (Llama 3.3 70B) extracts structured intake data           |
 | 📄 **PDF Reports**         | Professional one-page intake reports with jsPDF                |
 | ✏️ **Editable Reports**    | Human-in-the-loop editing with change tracking                 |
 | 🎵 **Audio Timeline**      | Click transcript segments to jump in audio playback            |
+| 💾 **Session Persistence** | Auto-restore transcript, audio, and report across refreshes   |
 | 📱 **PWA**                 | Installable, works offline (UI cached)                         |
 | 🌐 **Zero Setup**          | Just open the URL — no app store, no downloads                 |
+
+---
+
+## 🎯 Key Features Explained
+
+### ⚡ Real-Time Urgency Pulse
+
+During active recording, VetTriage continuously analyzes the conversation every 4 seconds to assess urgency levels:
+
+- **🟢 Routine** (1-2): Wellness checks, non-urgent follow-ups
+- **🟡 Monitor** (3): Mild symptoms, can wait 24-48 hours
+- **🟠 Urgent** (4): Significant symptoms, should be seen today
+- **🔴 Emergency** (5): Life-threatening, immediate attention required
+
+**Key Behaviors:**
+- Urgency can only **escalate**, never downgrade during a session
+- Visual **pulse/glow animation** when urgency increases
+- **Alert banners** appear on escalation (e.g., "Possible toxin exposure detected")
+- Uses a lightweight Groq prompt focused solely on urgency detection
+- Does not interrupt recording or modify final report structure
+
+This demonstrates **proactive clinical decision support** — alerting staff to potential emergencies in real-time, not just after the conversation ends.
+
+### 🎯 AI Confidence Scoring
+
+Every field in the AI-generated report includes a confidence score (0.0-1.0) with three levels:
+
+- **🟢 High (0.8-1.0)**: Information explicitly stated in transcript
+- **🟡 Medium (0.5-0.79)**: Information implied or partially stated
+- **🔴 Low (0.0-0.49)**: Information inferred or unclear
+
+Hover over confidence indicators to see AI's reasoning notes. This transparency builds trust and helps staff identify fields that need human verification.
 
 ---
 
@@ -67,6 +102,8 @@ flowchart LR
         DB[DownloadButton]
         AKM[ApiKeyModal]
         OB[OfflineBanner]
+        UP[UrgencyPulse]
+        CI[ConfidenceIndicator]
     end
 
     subgraph hooks [Hooks]
@@ -75,10 +112,12 @@ flowchart LR
         UAR[useAudioRecorder]
         UER[useEditableReport]
         UOS[useOnlineStatus]
+        UUP[useUrgencyPulse]
     end
 
     subgraph services [Services]
         GS[groq.ts]
+        UD[urgencyDetection.ts]
         PDF[pdfGenerator.ts]
     end
 
@@ -89,17 +128,21 @@ flowchart LR
     HP --> RP
     HP --> AKM
     HP --> OB
+    HP --> UP
 
     HP --> URS
     HP --> USR
     HP --> UAR
+    HP --> UUP
 
     RP --> EF
     RP --> DB
     RP --> UER
+    RP --> CI
 
     DB --> PDF
     HP --> GS
+    UUP --> UD
 ```
 
 ---
@@ -128,6 +171,9 @@ sequenceDiagram
         App->>U: Show live text (italic)
         WSA->>App: Final transcript
         App->>U: Show confirmed text with speaker label
+        App->>AI: Analyze urgency (every 4s)
+        AI->>App: Urgency assessment
+        App->>U: Update urgency pulse indicator
     end
 
     U->>App: Tap Stop
@@ -181,23 +227,30 @@ VetTriage/
 │   │   ├── ReportPreview.tsx  # Structured report display
 │   │   ├── StatusBadge.tsx    # Recording state indicator
 │   │   ├── TranscriptDisplay.tsx # Live transcript with speakers
+│   │   ├── UrgencyPulse.tsx   # Real-time urgency indicator
+│   │   ├── ConfidenceIndicator.tsx # AI confidence visual indicators
 │   │   └── UnsupportedBrowser.tsx # Browser fallback
 │   ├── hooks/
 │   │   ├── useAudioRecorder.ts    # MediaRecorder wrapper
 │   │   ├── useEditableReport.ts   # Report editing state
 │   │   ├── useOnlineStatus.ts     # Network detection
 │   │   ├── useRecordingState.ts   # State machine
-│   │   └── useSpeechRecognition.ts # Web Speech API wrapper
+│   │   ├── useSpeechRecognition.ts # Web Speech API wrapper
+│   │   └── useUrgencyPulse.ts    # Real-time urgency analysis
 │   ├── pages/
 │   │   └── HomePage.tsx       # Main application page
 │   ├── prompts/
-│   │   └── veterinary-intake.ts # AI system prompt
+│   │   ├── veterinary-intake.ts # AI system prompt
+│   │   └── urgency-detection.ts # Lightweight urgency prompt
 │   ├── services/
 │   │   ├── groq.ts            # Groq API client
-│   │   └── pdfGenerator.ts    # jsPDF report builder
+│   │   ├── urgencyDetection.ts # Real-time urgency analysis
+│   │   ├── pdfGenerator.ts    # jsPDF report builder
+│   │   └── sessionStorage.ts  # IndexedDB session persistence
 │   ├── types/
 │   │   ├── report.ts          # IntakeReport interface
-│   │   └── transcript.ts      # Transcript segment types
+│   │   ├── transcript.ts       # Transcript segment types
+│   │   └── urgency.ts          # Urgency level types
 │   ├── utils/
 │   │   ├── browserSupport.ts  # Feature detection
 │   │   └── formatters.ts      # Date/time utilities
