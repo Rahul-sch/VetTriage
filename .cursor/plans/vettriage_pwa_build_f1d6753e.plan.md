@@ -4,10 +4,10 @@ overview: Build a mobile-first PWA that records veterinary conversations using W
 todos:
   - id: phase-1-scaffold
     content: Initialize Git repo, scaffold Vite + React + Tailwind project
-    status: pending
+    status: completed
   - id: phase-2-ui
     content: Build mobile-first recording UI with RecordButton and TranscriptDisplay
-    status: pending
+    status: in_progress
     dependencies:
       - phase-1-scaffold
   - id: phase-3-speech
