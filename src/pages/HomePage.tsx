@@ -176,15 +176,23 @@ export function HomePage() {
       // Format transcript with speaker labels for AI
       const formattedTranscript = formatTranscriptForAnalysis(segments);
 
-      analyzeTranscript(formattedTranscript).then((result) => {
-        if (result.success) {
-          setReport(result.report);
+      analyzeTranscript(formattedTranscript)
+        .then((result) => {
+          if (result.success) {
+            setReport(result.report);
+            completeProcessing();
+          } else {
+            setAnalysisError(result.error);
+            completeProcessing();
+          }
+        })
+        .catch((error) => {
+          console.error("Analysis error:", error);
+          setAnalysisError(
+            error instanceof Error ? error.message : "Unknown error occurred"
+          );
           completeProcessing();
-        } else {
-          setAnalysisError(result.error);
-          completeProcessing();
-        }
-      });
+        });
     }
   }, [state, segments, completeProcessing]);
 
@@ -316,7 +324,20 @@ export function HomePage() {
               <p className="text-slate-600">{analysisError}</p>
             </div>
           </div>
-        ) : state !== "complete" && state !== "processing" ? (
+        ) : state === "processing" ? (
+          /* Loading state during analysis */
+          <div className="flex-1 w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-6">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                Analyzing Conversation...
+              </h3>
+              <p className="text-sm text-slate-500">
+                Extracting structured data from transcript
+              </p>
+            </div>
+          </div>
+        ) : state !== "complete" ? (
           /* Transcript area during recording/idle */
           <TranscriptDisplay
             state={state}
