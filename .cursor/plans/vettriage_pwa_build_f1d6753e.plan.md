@@ -134,16 +134,16 @@ flowchart LR
 
 - `src/types/report.ts` - TypeScript interfaces:
   ```typescript
-          interface IntakeReport {
-            patient: { name, species, breed, age, weight }
-            owner: { name, phone, email }
-            chiefComplaint: string
-            symptoms: string[]
-            medicalHistory: string
-            currentMedications: string[]
-            assessment: string
-            urgencyLevel: 1 | 2 | 3 | 4 | 5
-          }
+            interface IntakeReport {
+              patient: { name, species, breed, age, weight }
+              owner: { name, phone, email }
+              chiefComplaint: string
+              symptoms: string[]
+              medicalHistory: string
+              currentMedications: string[]
+              assessment: string
+              urgencyLevel: 1 | 2 | 3 | 4 | 5
+            }
   ```
 
 
@@ -211,5 +211,3 @@ flowchart LR
 | Feature | Reason ||---------|--------|| Backend + Postgres | Not needed for demo, add for multi-user || Audio file recording | Whisper fallback, add if Web Speech insufficient || User authentication | Single-user demo doesn't need it || Report editing | Keep v1 simple, auto-generated only || HIPAA compliance | Requires legal review, backend changes || Multi-language | English-only for demo |---
 
 ## API Summary
-
-| API | Purpose | Auth ||-----|---------|------|| Web Speech API | Transcription | None (browser native) || Groq API | AI analysis | API key in .env || jsPDF | PDF generation | None (client-side library) |---
