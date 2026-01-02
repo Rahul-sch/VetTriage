@@ -7,6 +7,7 @@ import { ApiKeyModal } from "../components/ApiKeyModal";
 import { UnsupportedBrowser } from "../components/UnsupportedBrowser";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { AudioPlayer } from "../components/AudioPlayer";
+import { CollapsibleTranscript } from "../components/CollapsibleTranscript";
 import { useRecordingState } from "../hooks/useRecordingState";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
@@ -135,6 +136,11 @@ export function HomePage() {
   // Only show speech errors that are actual problems (not during active recording)
   const displayError = state === "recording" ? null : speechError;
 
+  // Show collapsible transcript after recording completes
+  const showCollapsibleTranscript = 
+    (state === "complete" || state === "processing") && 
+    segmentsWithTimes.length > 0;
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Offline banner */}
@@ -151,7 +157,6 @@ export function HomePage() {
           <div className="w-full max-w-2xl mx-auto">
             <AudioPlayer
               audioUrl={audioUrl}
-              currentTime={audioCurrentTime}
               seekTime={audioSeekTimeRef.current}
               onTimeUpdate={handleAudioTimeUpdate}
               onSeek={handleAudioSeek}
@@ -160,6 +165,15 @@ export function HomePage() {
               }}
             />
           </div>
+        )}
+
+        {/* Collapsible transcript - show after recording completes */}
+        {showCollapsibleTranscript && (
+          <CollapsibleTranscript
+            segments={segmentsWithTimes}
+            onSegmentClick={audioUrl ? handleSegmentClick : undefined}
+            activeSegmentIndex={activeSegmentIndex}
+          />
         )}
 
         {/* Show report if complete and available */}
@@ -187,7 +201,7 @@ export function HomePage() {
               <p className="text-slate-600">{analysisError}</p>
             </div>
           </div>
-        ) : (
+        ) : state !== "complete" && state !== "processing" ? (
           /* Transcript area during recording/idle */
           <TranscriptDisplay
             state={state}
@@ -200,7 +214,7 @@ export function HomePage() {
             onSegmentClick={audioUrl ? handleSegmentClick : undefined}
             hasAudio={!!audioUrl}
           />
-        )}
+        ) : null}
 
         {/* Record button */}
         <div className="py-4 flex justify-center shrink-0">

@@ -2,7 +2,6 @@ import { useRef, useEffect, useState } from "react";
 
 interface AudioPlayerProps {
   audioUrl: string;
-  currentTime: number;
   /** External seek request (from clicking a transcript segment) */
   seekTime?: number | null;
   onTimeUpdate: (time: number) => void;
@@ -13,7 +12,6 @@ interface AudioPlayerProps {
 
 export function AudioPlayer({
   audioUrl,
-  currentTime,
   seekTime,
   onTimeUpdate,
   onSeek,

@@ -282,8 +282,6 @@ function getErrorMessage(error: SpeechError): string {
       return "Speech recognition not supported";
     case "permission-denied":
       return "Microphone access denied";
-    case "no-speech":
-      return "No speech detected";
     case "network":
       return "Network error";
     default:
@@ -297,8 +295,6 @@ function getErrorHint(error: SpeechError): string {
       return "Please use Chrome, Edge, or Safari for voice recording.";
     case "permission-denied":
       return "Please allow microphone access and try again.";
-    case "no-speech":
-      return "Try speaking louder or check your microphone.";
     case "network":
       return "Check your internet connection.";
     default:
