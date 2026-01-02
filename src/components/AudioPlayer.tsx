@@ -3,26 +3,35 @@ import { useRef, useEffect, useState } from "react";
 interface AudioPlayerProps {
   audioUrl: string;
   currentTime: number;
+  /** External seek request (from clicking a transcript segment) */
+  seekTime?: number | null;
   onTimeUpdate: (time: number) => void;
   onSeek: (time: number) => void;
+  /** Called after an external seek has been processed */
+  onSeeked?: () => void;
 }
 
 export function AudioPlayer({
   audioUrl,
   currentTime,
+  seekTime,
   onTimeUpdate,
   onSeek,
+  onSeeked,
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [localTime, setLocalTime] = useState(0);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleTimeUpdate = () => {
-      onTimeUpdate(audio.currentTime);
+      const time = audio.currentTime;
+      setLocalTime(time);
+      onTimeUpdate(time);
     };
 
     const handleLoadedMetadata = () => {
@@ -48,13 +57,21 @@ export function AudioPlayer({
     };
   }, [onTimeUpdate]);
 
-  // Handle external seek requests
+  // Handle external seek requests (from clicking transcript segments)
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio && Math.abs(audio.currentTime - currentTime) > 0.5) {
-      audio.currentTime = currentTime;
+    if (audio && seekTime !== null && seekTime !== undefined) {
+      audio.currentTime = seekTime;
+      setLocalTime(seekTime);
+      // Auto-play when seeking to a segment
+      if (audio.paused) {
+        audio.play().catch(() => {
+          // Ignore autoplay errors
+        });
+      }
+      onSeeked?.();
     }
-  }, [currentTime]);
+  }, [seekTime, onSeeked]);
 
   const handlePlayPause = () => {
     const audio = audioRef.current;
@@ -63,7 +80,9 @@ export function AudioPlayer({
     if (isPlaying) {
       audio.pause();
     } else {
-      audio.play();
+      audio.play().catch(() => {
+        // Ignore autoplay errors
+      });
     }
   };
 
@@ -71,11 +90,13 @@ export function AudioPlayer({
     const time = parseFloat(e.target.value);
     if (audioRef.current) {
       audioRef.current.currentTime = time;
+      setLocalTime(time);
     }
     onSeek(time);
   };
 
   const formatTime = (seconds: number): string => {
+    if (!isFinite(seconds) || isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
@@ -101,7 +122,8 @@ export function AudioPlayer({
             type="range"
             min={0}
             max={duration || 100}
-            value={currentTime}
+            step={0.1}
+            value={localTime}
             onChange={handleSeek}
             className="w-full h-2 bg-slate-300 rounded-full appearance-none cursor-pointer
                        [&::-webkit-slider-thumb]:appearance-none
@@ -112,7 +134,7 @@ export function AudioPlayer({
                        [&::-webkit-slider-thumb]:shadow"
           />
           <div className="flex justify-between text-xs text-slate-500 mt-1">
-            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(localTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
         </div>
@@ -140,4 +162,3 @@ function PauseIcon() {
     </svg>
   );
 }
-

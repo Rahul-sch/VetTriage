@@ -134,16 +134,16 @@ flowchart LR
 
 - `src/types/report.ts` - TypeScript interfaces:
   ```typescript
-        interface IntakeReport {
-          patient: { name, species, breed, age, weight }
-          owner: { name, phone, email }
-          chiefComplaint: string
-          symptoms: string[]
-          medicalHistory: string
-          currentMedications: string[]
-          assessment: string
-          urgencyLevel: 1 | 2 | 3 | 4 | 5
-        }
+          interface IntakeReport {
+            patient: { name, species, breed, age, weight }
+            owner: { name, phone, email }
+            chiefComplaint: string
+            symptoms: string[]
+            medicalHistory: string
+            currentMedications: string[]
+            assessment: string
+            urgencyLevel: 1 | 2 | 3 | 4 | 5
+          }
   ```
 
 
@@ -213,5 +213,3 @@ flowchart LR
 ## API Summary
 
 | API | Purpose | Auth ||-----|---------|------|| Web Speech API | Transcription | None (browser native) || Groq API | AI analysis | API key in .env || jsPDF | PDF generation | None (client-side library) |---
-
-## Estimated Timeline

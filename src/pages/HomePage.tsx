@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Header } from "../components/Header";
 import { RecordButton } from "../components/RecordButton";
 import { TranscriptDisplay } from "../components/TranscriptDisplay";
@@ -46,6 +46,9 @@ export function HomePage() {
   const [needsApiKey, setNeedsApiKey] = useState(!hasApiKey());
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
 
+  // Ref for audio player to allow seeking
+  const audioSeekTimeRef = useRef<number | null>(null);
+
   // Calculate segments with relative times
   const segmentsWithTimes = useMemo(() => {
     if (!recordingStartTime) return segments;
@@ -58,22 +61,20 @@ export function HomePage() {
     return findActiveSegment(segmentsWithTimes, audioCurrentTime);
   }, [segmentsWithTimes, audioCurrentTime, audioUrl]);
 
-  // Sync speech recognition and audio recording with recording state
+  // Start speech and audio recording together
   useEffect(() => {
     if (state === "recording") {
       startListening();
-      startAudioRecording();
-    } else {
+      // Start audio recording (async, but we don't need to wait)
+      startAudioRecording().catch((err) => {
+        console.error("Audio recording failed:", err);
+      });
+    } else if (state !== "idle") {
+      // Only stop when transitioning away from recording
       stopListening();
       stopAudioRecording();
     }
-  }, [
-    state,
-    startListening,
-    stopListening,
-    startAudioRecording,
-    stopAudioRecording,
-  ]);
+  }, [state, startListening, stopListening, startAudioRecording, stopAudioRecording]);
 
   // Trigger analysis when entering processing state
   useEffect(() => {
@@ -102,6 +103,7 @@ export function HomePage() {
     setReport(null);
     setAnalysisError(null);
     setAudioCurrentTime(0);
+    audioSeekTimeRef.current = null;
   }, [reset, resetSpeech, resetAudio]);
 
   const handleApiKeySet = useCallback(() => {
@@ -116,8 +118,10 @@ export function HomePage() {
     setAudioCurrentTime(time);
   }, []);
 
+  // Handle segment click - set seek time that AudioPlayer will pick up
   const handleSegmentClick = useCallback(
     (_index: number, relativeTime: number) => {
+      audioSeekTimeRef.current = relativeTime;
       setAudioCurrentTime(relativeTime);
     },
     []
@@ -127,6 +131,9 @@ export function HomePage() {
   if (!isSupported) {
     return <UnsupportedBrowser />;
   }
+
+  // Only show speech errors that are actual problems (not during active recording)
+  const displayError = state === "recording" ? null : speechError;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -145,8 +152,12 @@ export function HomePage() {
             <AudioPlayer
               audioUrl={audioUrl}
               currentTime={audioCurrentTime}
+              seekTime={audioSeekTimeRef.current}
               onTimeUpdate={handleAudioTimeUpdate}
               onSeek={handleAudioSeek}
+              onSeeked={() => {
+                audioSeekTimeRef.current = null;
+              }}
             />
           </div>
         )}
@@ -183,7 +194,7 @@ export function HomePage() {
             segments={segmentsWithTimes}
             currentSpeaker={currentSpeaker}
             interimTranscript={interimTranscript}
-            error={speechError}
+            error={displayError}
             onToggleSpeaker={state === "recording" ? toggleSpeaker : undefined}
             activeSegmentIndex={activeSegmentIndex}
             onSegmentClick={audioUrl ? handleSegmentClick : undefined}

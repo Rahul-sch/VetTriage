@@ -8,7 +8,6 @@ import type { Speaker, TranscriptSegment } from "../types/transcript";
 export type SpeechError =
   | "not-supported"
   | "permission-denied"
-  | "no-speech"
   | "network"
   | "unknown";
 
@@ -50,7 +49,13 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const lastSpeechTimeRef = useRef<number>(Date.now());
-  const pendingTextRef = useRef<string>("");
+  const shouldRestartRef = useRef<boolean>(false);
+  const currentSpeakerRef = useRef<Speaker>("owner");
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    currentSpeakerRef.current = currentSpeaker;
+  }, [currentSpeaker]);
 
   // Initialize recognition instance
   useEffect(() => {
@@ -75,41 +80,38 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
     recognition.onend = () => {
       setIsListening(false);
       setInterimTranscript("");
-      
-      // Flush any pending text
-      if (pendingTextRef.current.trim()) {
-        const finalText = pendingTextRef.current.trim();
-        setSegments((prev) => {
-          // Check if we should append to last segment or create new one
-          const lastSegment = prev[prev.length - 1];
-          if (lastSegment && lastSegment.speaker === currentSpeaker) {
-            // Append to existing segment
-            return [
-              ...prev.slice(0, -1),
-              { ...lastSegment, text: lastSegment.text + " " + finalText },
-            ];
-          } else {
-            // New segment
-            return [
-              ...prev,
-              { speaker: currentSpeaker, text: finalText, timestamp: Date.now() },
-            ];
+
+      // Auto-restart if we should still be listening
+      if (shouldRestartRef.current) {
+        setTimeout(() => {
+          try {
+            recognition.start();
+          } catch {
+            // Ignore if already started
           }
-        });
-        pendingTextRef.current = "";
+        }, 100);
       }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      // Handle no-speech gracefully - just restart if we should be recording
+      if (event.error === "no-speech") {
+        // Don't set error, just let it restart via onend
+        return;
+      }
+
+      // Handle aborted gracefully (happens when stopping)
+      if (event.error === "aborted") {
+        return;
+      }
+
       setIsListening(false);
       setInterimTranscript("");
 
       switch (event.error) {
         case "not-allowed":
           setError("permission-denied");
-          break;
-        case "no-speech":
-          setError("no-speech");
+          shouldRestartRef.current = false;
           break;
         case "network":
           setError("network");
@@ -122,7 +124,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       const now = Date.now();
       const timeSinceLastSpeech = now - lastSpeechTimeRef.current;
-      
+
       let finalTranscript = "";
       let currentInterim = "";
 
@@ -143,46 +145,49 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
 
       if (finalTranscript) {
         // Check if we should switch speakers based on pause
-        const shouldSwitchSpeaker = timeSinceLastSpeech > SPEAKER_CHANGE_THRESHOLD;
-        
-        setCurrentSpeaker((prevSpeaker) => {
-          const speaker = shouldSwitchSpeaker
-            ? (prevSpeaker === "vet" ? "owner" : "vet")
-            : prevSpeaker;
-          
-          // Add segment with correct speaker
-          setSegments((prev) => {
-            const lastSegment = prev[prev.length - 1];
-            
-            // If same speaker and recent, append to last segment
-            if (
-              lastSegment &&
-              lastSegment.speaker === speaker &&
-              !shouldSwitchSpeaker
-            ) {
-              return [
-                ...prev.slice(0, -1),
-                {
-                  ...lastSegment,
-                  text: lastSegment.text + " " + finalTranscript.trim(),
-                },
-              ];
-            } else {
-              // New segment
-              return [
-                ...prev,
-                {
-                  speaker,
-                  text: finalTranscript.trim(),
-                  timestamp: now,
-                },
-              ];
-            }
-          });
-          
-          return speaker;
+        const shouldSwitchSpeaker =
+          timeSinceLastSpeech > SPEAKER_CHANGE_THRESHOLD;
+
+        const speaker = shouldSwitchSpeaker
+          ? currentSpeakerRef.current === "vet"
+            ? "owner"
+            : "vet"
+          : currentSpeakerRef.current;
+
+        if (shouldSwitchSpeaker) {
+          setCurrentSpeaker(speaker);
+        }
+
+        // Add segment with correct speaker
+        setSegments((prev) => {
+          const lastSegment = prev[prev.length - 1];
+
+          // If same speaker and recent, append to last segment
+          if (
+            lastSegment &&
+            lastSegment.speaker === speaker &&
+            !shouldSwitchSpeaker
+          ) {
+            return [
+              ...prev.slice(0, -1),
+              {
+                ...lastSegment,
+                text: lastSegment.text + " " + finalTranscript.trim(),
+              },
+            ];
+          } else {
+            // New segment
+            return [
+              ...prev,
+              {
+                speaker,
+                text: finalTranscript.trim(),
+                timestamp: now,
+              },
+            ];
+          }
         });
-        
+
         lastSpeechTimeRef.current = now;
       }
     };
@@ -190,15 +195,17 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
     recognitionRef.current = recognition;
 
     return () => {
+      shouldRestartRef.current = false;
       recognition.abort();
       recognitionRef.current = null;
     };
-  }, [isSupported, currentSpeaker]);
+  }, [isSupported]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) return;
 
     setError(null);
+    shouldRestartRef.current = true;
     lastSpeechTimeRef.current = Date.now();
     try {
       recognitionRef.current.start();
@@ -208,6 +215,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
   }, []);
 
   const stopListening = useCallback(() => {
+    shouldRestartRef.current = false;
     if (!recognitionRef.current) return;
 
     try {
@@ -226,7 +234,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
     setCurrentSpeaker("owner");
     setInterimTranscript("");
     setError(isSupported ? null : "not-supported");
-    pendingTextRef.current = "";
+    shouldRestartRef.current = false;
   }, [isSupported]);
 
   return {
