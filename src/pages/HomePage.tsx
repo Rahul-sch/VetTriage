@@ -302,16 +302,23 @@ export function HomePage() {
     startRecording();
   }, [startRecording, resetSpeech, resetAudio]);
 
-  // Load test transcript for demo/debugging
+  // Load test transcript for demo/debugging - always available
   const loadTestTranscript = useCallback(() => {
-    if (state !== "idle") return;
-    // Clear any previous analysis results
-    setReport(null);
-    setAnalysisError(null);
-    setIsTestTranscriptMode(true);
+    // Full reset: clear everything before loading test transcript
+    reset(); // Set state to "idle"
+    resetSpeech(); // Clear transcript segments
+    resetAudio(); // Clear audio recording
+    setReport(null); // Clear any existing report
+    setAnalysisError(null); // Clear any errors
+    setIsTestTranscriptMode(true); // Enable test mode
+    
+    // Load mock transcript
     const mockSegments = getMockTranscript();
     setSegments(mockSegments);
-  }, [state, setSegments]);
+    
+    // Clear session to ensure clean state
+    clearSession().catch(console.error);
+  }, [reset, resetSpeech, resetAudio, setSegments]);
 
   // Trigger analysis of loaded transcript
   const analyzeLoadedTranscript = useCallback(() => {
@@ -478,15 +485,13 @@ export function HomePage() {
             onReset={handleReset}
           />
 
-          {/* Test transcript buttons - dev/demo only */}
-          {state === "idle" && segments.length === 0 && (
-            <button
-              onClick={loadTestTranscript}
-              className="px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors"
-            >
-              🧪 Load Test Transcript
-            </button>
-          )}
+          {/* Test transcript button - always available for demo/testing */}
+          <button
+            onClick={loadTestTranscript}
+            className="px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors"
+          >
+            🧪 Load Test Transcript (Demo)
+          </button>
 
           {state === "idle" && segments.length > 0 && (
             <button
