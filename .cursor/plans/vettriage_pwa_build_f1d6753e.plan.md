@@ -7,12 +7,12 @@ todos:
     status: completed
   - id: phase-2-ui
     content: Build mobile-first recording UI with RecordButton and TranscriptDisplay
-    status: in_progress
+    status: completed
     dependencies:
       - phase-1-scaffold
   - id: phase-3-speech
     content: Integrate Web Speech API for real-time transcription
-    status: pending
+    status: in_progress
     dependencies:
       - phase-2-ui
   - id: phase-4-groq

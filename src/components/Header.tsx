@@ -1,8 +1,8 @@
-import { StatusBadge } from './StatusBadge'
-import type { RecordingState } from '../hooks/useRecordingState'
+import { StatusBadge } from "./StatusBadge";
+import type { RecordingState } from "../hooks/useRecordingState";
 
 interface HeaderProps {
-  state: RecordingState
+  state: RecordingState;
 }
 
 export function Header({ state }: HeaderProps) {
@@ -13,6 +13,5 @@ export function Header({ state }: HeaderProps) {
         <StatusBadge state={state} />
       </div>
     </header>
-  )
+  );
 }
-

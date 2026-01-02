@@ -1,26 +1,29 @@
-import type { RecordingState } from '../hooks/useRecordingState'
+import type { RecordingState } from "../hooks/useRecordingState";
 
 interface StatusBadgeProps {
-  state: RecordingState
+  state: RecordingState;
 }
 
-const stateConfig: Record<RecordingState, { label: string; className: string }> = {
+const stateConfig: Record<
+  RecordingState,
+  { label: string; className: string }
+> = {
   idle: {
-    label: 'Ready',
-    className: 'bg-slate-200 text-slate-600',
+    label: "Ready",
+    className: "bg-slate-200 text-slate-600",
   },
   recording: {
-    label: 'Recording',
-    className: 'bg-red-500 text-white animate-pulse',
+    label: "Recording",
+    className: "bg-red-500 text-white animate-pulse",
   },
   processing: {
-    label: 'Processing',
-    className: 'bg-amber-500 text-white animate-pulse',
+    label: "Processing",
+    className: "bg-amber-500 text-white animate-pulse",
   },
-}
+};
 
 export function StatusBadge({ state }: StatusBadgeProps) {
-  const config = stateConfig[state]
+  const config = stateConfig[state];
 
   return (
     <span
@@ -32,6 +35,5 @@ export function StatusBadge({ state }: StatusBadgeProps) {
     >
       {config.label}
     </span>
-  )
+  );
 }
-

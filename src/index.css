@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 /* Base styles for mobile-first PWA */
-html, body {
+html,
+body {
   @apply antialiased;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -32,4 +33,3 @@ html, body {
 .animate-ping-slow {
   animation: ping-slow 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-
