@@ -27,7 +27,7 @@ todos:
       - phase-4-groq
   - id: phase-6-pwa
     content: Configure PWA features, add API key modal and session history
-    status: in_progress
+    status: completed
     dependencies:
       - phase-5-pdf
 ---

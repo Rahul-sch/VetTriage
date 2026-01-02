@@ -9,6 +9,7 @@ import { OfflineBanner } from "../components/OfflineBanner";
 import { useRecordingState } from "../hooks/useRecordingState";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { analyzeTranscript, hasApiKey } from "../services/groq";
+import { formatTranscriptForAnalysis } from "../types/transcript";
 import type { IntakeReport } from "../types/report";
 
 export function HomePage() {
@@ -16,11 +17,13 @@ export function HomePage() {
     useRecordingState();
   const {
     isSupported,
-    transcript,
+    segments,
+    currentSpeaker,
     interimTranscript,
     error: speechError,
     startListening,
     stopListening,
+    toggleSpeaker,
     reset: resetSpeech,
   } = useSpeechRecognition();
 
@@ -39,10 +42,13 @@ export function HomePage() {
 
   // Trigger analysis when entering processing state
   useEffect(() => {
-    if (state === "processing" && transcript) {
+    if (state === "processing" && segments.length > 0) {
       setAnalysisError(null);
 
-      analyzeTranscript(transcript).then((result) => {
+      // Format transcript with speaker labels for AI
+      const formattedTranscript = formatTranscriptForAnalysis(segments);
+
+      analyzeTranscript(formattedTranscript).then((result) => {
         if (result.success) {
           setReport(result.report);
           completeProcessing();
@@ -52,7 +58,7 @@ export function HomePage() {
         }
       });
     }
-  }, [state, transcript, completeProcessing]);
+  }, [state, segments, completeProcessing]);
 
   const handleReset = useCallback(() => {
     reset();
@@ -110,9 +116,11 @@ export function HomePage() {
           /* Transcript area during recording/idle */
           <TranscriptDisplay
             state={state}
-            transcript={transcript}
+            segments={segments}
+            currentSpeaker={currentSpeaker}
             interimTranscript={interimTranscript}
             error={speechError}
+            onToggleSpeaker={state === "recording" ? toggleSpeaker : undefined}
           />
         )}
 
