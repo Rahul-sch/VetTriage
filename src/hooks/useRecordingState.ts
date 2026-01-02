@@ -1,14 +1,17 @@
 import { useState, useCallback } from "react";
 
-export type RecordingState = "idle" | "recording" | "processing";
+export type RecordingState = "idle" | "recording" | "processing" | "complete";
 
 interface UseRecordingStateReturn {
   state: RecordingState;
   isIdle: boolean;
   isRecording: boolean;
   isProcessing: boolean;
+  isComplete: boolean;
   startRecording: () => void;
   stopRecording: () => void;
+  startProcessing: () => void;
+  completeProcessing: () => void;
   reset: () => void;
 }
 
@@ -16,7 +19,7 @@ export function useRecordingState(): UseRecordingStateReturn {
   const [state, setState] = useState<RecordingState>("idle");
 
   const startRecording = useCallback(() => {
-    if (state === "idle") {
+    if (state === "idle" || state === "complete") {
       setState("recording");
     }
   }, [state]);
@@ -24,11 +27,16 @@ export function useRecordingState(): UseRecordingStateReturn {
   const stopRecording = useCallback(() => {
     if (state === "recording") {
       setState("processing");
-      // In Phase 3+, this will trigger AI analysis
-      // For now, simulate processing then return to idle after 2s
-      setTimeout(() => setState("idle"), 2000);
     }
   }, [state]);
+
+  const startProcessing = useCallback(() => {
+    setState("processing");
+  }, []);
+
+  const completeProcessing = useCallback(() => {
+    setState("complete");
+  }, []);
 
   const reset = useCallback(() => {
     setState("idle");
@@ -39,8 +47,11 @@ export function useRecordingState(): UseRecordingStateReturn {
     isIdle: state === "idle",
     isRecording: state === "recording",
     isProcessing: state === "processing",
+    isComplete: state === "complete",
     startRecording,
     stopRecording,
+    startProcessing,
+    completeProcessing,
     reset,
   };
 }

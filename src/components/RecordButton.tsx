@@ -4,15 +4,26 @@ interface RecordButtonProps {
   state: RecordingState;
   onStart: () => void;
   onStop: () => void;
+  onReset?: () => void;
 }
 
-export function RecordButton({ state, onStart, onStop }: RecordButtonProps) {
+export function RecordButton({
+  state,
+  onStart,
+  onStop,
+  onReset,
+}: RecordButtonProps) {
   const isRecording = state === "recording";
   const isProcessing = state === "processing";
+  const isComplete = state === "complete";
   const isDisabled = isProcessing;
 
   const handleClick = () => {
     if (isDisabled) return;
+    if (isComplete && onReset) {
+      onReset();
+      return;
+    }
     if (isRecording) {
       onStop();
     } else {
@@ -36,7 +47,13 @@ export function RecordButton({ state, onStart, onStop }: RecordButtonProps) {
         <button
           onClick={handleClick}
           disabled={isDisabled}
-          aria-label={isRecording ? "Stop recording" : "Start recording"}
+          aria-label={
+            isComplete
+              ? "Start new recording"
+              : isRecording
+              ? "Stop recording"
+              : "Start recording"
+          }
           className={`
             absolute
             w-32 h-32 sm:w-40 sm:h-40
@@ -52,6 +69,8 @@ export function RecordButton({ state, onStart, onStop }: RecordButtonProps) {
                 ? "bg-red-500 hover:bg-red-600 focus:ring-red-300"
                 : isProcessing
                 ? "bg-amber-500 cursor-not-allowed"
+                : isComplete
+                ? "bg-teal-600 hover:bg-teal-700 focus:ring-teal-300"
                 : "bg-teal-600 hover:bg-teal-700 focus:ring-teal-300"
             }
           `}
@@ -60,6 +79,8 @@ export function RecordButton({ state, onStart, onStop }: RecordButtonProps) {
             <ProcessingSpinner />
           ) : isRecording ? (
             <StopIcon />
+          ) : isComplete ? (
+            <RestartIcon />
           ) : (
             <MicrophoneIcon />
           )}
@@ -72,6 +93,8 @@ export function RecordButton({ state, onStart, onStop }: RecordButtonProps) {
           ? "Analyzing conversation..."
           : isRecording
           ? "Tap to stop recording"
+          : isComplete
+          ? "Tap to start new recording"
           : "Tap to start recording"}
       </p>
     </div>
@@ -101,6 +124,25 @@ function StopIcon() {
       aria-hidden="true"
     >
       <rect x="6" y="6" width="12" height="12" rx="2" />
+    </svg>
+  );
+}
+
+function RestartIcon() {
+  return (
+    <svg
+      className="w-12 h-12 sm:w-14 sm:h-14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+      />
     </svg>
   );
 }

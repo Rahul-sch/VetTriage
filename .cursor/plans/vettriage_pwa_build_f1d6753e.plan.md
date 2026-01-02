@@ -12,12 +12,12 @@ todos:
       - phase-1-scaffold
   - id: phase-3-speech
     content: Integrate Web Speech API for real-time transcription
-    status: in_progress
+    status: completed
     dependencies:
       - phase-2-ui
   - id: phase-4-groq
     content: Add Groq AI analysis with structured intake extraction
-    status: pending
+    status: in_progress
     dependencies:
       - phase-3-speech
   - id: phase-5-pdf

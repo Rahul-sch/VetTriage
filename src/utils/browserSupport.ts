@@ -12,9 +12,7 @@ export function isSpeechRecognitionSupported(): boolean {
 /**
  * Get the SpeechRecognition constructor (handles vendor prefixes)
  */
-export function getSpeechRecognition():
-  | typeof SpeechRecognition
-  | undefined {
+export function getSpeechRecognition(): typeof SpeechRecognition | undefined {
   if (typeof window === "undefined") return undefined;
 
   return (
@@ -23,4 +21,3 @@ export function getSpeechRecognition():
       .webkitSpeechRecognition
   );
 }
-

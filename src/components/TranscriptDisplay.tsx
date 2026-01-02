@@ -35,9 +35,7 @@ export function TranscriptDisplay({
             <p className="text-red-600 font-medium mt-2">
               {getErrorMessage(error)}
             </p>
-            <p className="text-slate-500 text-sm mt-1">
-              {getErrorHint(error)}
-            </p>
+            <p className="text-slate-500 text-sm mt-1">{getErrorHint(error)}</p>
           </div>
         </div>
       </div>

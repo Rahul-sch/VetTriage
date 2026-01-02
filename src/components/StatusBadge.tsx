@@ -17,8 +17,12 @@ const stateConfig: Record<
     className: "bg-red-500 text-white animate-pulse",
   },
   processing: {
-    label: "Processing",
+    label: "Analyzing",
     className: "bg-amber-500 text-white animate-pulse",
+  },
+  complete: {
+    label: "Complete",
+    className: "bg-green-500 text-white",
   },
 };
 
