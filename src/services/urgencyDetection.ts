@@ -106,6 +106,10 @@ export async function detectUrgency(
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        console.warn("Rate limit exceeded for urgency detection - skipping");
+        return null;
+      }
       console.warn("Urgency detection API error:", response.status);
       return null;
     }

@@ -27,6 +27,7 @@ export function useUrgencyPulse(
   const highestUrgencyRef = useRef<UrgencyScore>(1);
   const lastAnalysisTimeRef = useRef<number>(0);
   const analysisIntervalRef = useRef<number | null>(null);
+  const isAnalyzingRef = useRef<boolean>(false); // Prevent concurrent calls
 
   // Format segments into transcript text
   const formatTranscript = useCallback((segments: TranscriptSegment[]): string => {
@@ -38,26 +39,39 @@ export function useUrgencyPulse(
   // Analyze urgency from current transcript
   const analyzeUrgency = useCallback(async (transcript: string) => {
     if (!transcript.trim()) return;
+    
+    // Prevent concurrent calls
+    if (isAnalyzingRef.current) return;
+    
+    // Minimum 5 seconds between calls to avoid rate limits
+    const timeSinceLastCall = Date.now() - lastAnalysisTimeRef.current;
+    if (timeSinceLastCall < 5000) return;
 
-    const assessment = await detectUrgency(transcript);
-    if (!assessment) return;
-
-    setUrgency((prev) => {
-      // Only escalate, never downgrade
-      if (!prev || compareUrgency(assessment.urgency, prev.urgency) > 0) {
-        // Urgency increased
-        if (prev && assessment.urgency > prev.urgency) {
-          setJustEscalated(true);
-        }
-        highestUrgencyRef.current = Math.max(
-          highestUrgencyRef.current,
-          assessment.urgency
-        ) as UrgencyScore;
-        return assessment;
+    isAnalyzingRef.current = true;
+    try {
+      const assessment = await detectUrgency(transcript);
+      if (assessment) {
+        setUrgency((prev) => {
+          // Only escalate, never downgrade
+          if (!prev || compareUrgency(assessment.urgency, prev.urgency) > 0) {
+            // Urgency increased
+            if (prev && assessment.urgency > prev.urgency) {
+              setJustEscalated(true);
+            }
+            highestUrgencyRef.current = Math.max(
+              highestUrgencyRef.current,
+              assessment.urgency
+            ) as UrgencyScore;
+            return assessment;
+          }
+          // Keep previous urgency if new one is lower
+          return prev;
+        });
+        lastAnalysisTimeRef.current = Date.now();
       }
-      // Keep previous urgency if new one is lower
-      return prev;
-    });
+    } finally {
+      isAnalyzingRef.current = false;
+    }
   }, []);
 
   // Periodic analysis during recording
@@ -80,14 +94,13 @@ export function useUrgencyPulse(
       }
     }
 
-      // Set up periodic analysis every 4 seconds (between 3-5s requirement)
+      // Set up periodic analysis every 6 seconds (reduced frequency to avoid rate limits)
       analysisIntervalRef.current = window.setInterval(() => {
         const transcript = formatTranscript(segments);
         if (transcript.trim()) {
           analyzeUrgency(transcript);
-          lastAnalysisTimeRef.current = Date.now();
         }
-      }, 4000); // 4 seconds
+      }, 6000); // 6 seconds - less frequent to avoid rate limits
 
     return () => {
       if (analysisIntervalRef.current !== null) {
