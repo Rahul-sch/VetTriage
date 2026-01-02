@@ -4,7 +4,7 @@ import {
   createUrgencyPrompt,
 } from "../prompts/urgency-detection";
 import { getApiKey } from "./groq";
-import { waitForRateLimit } from "./rateLimiter";
+import { waitForRateLimit, markRequestComplete, setCooldown } from "./rateLimiter";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = "llama-3.3-70b-versatile";
@@ -68,10 +68,18 @@ function parseUrgencyResponse(text: string): UrgencyAssessment | null {
 /**
  * Detect urgency from partial transcript
  * Lightweight API call focused only on urgency assessment
+ * @param transcript - The transcript text to analyze
+ * @param signal - Optional AbortSignal to cancel the request
  */
 export async function detectUrgency(
-  transcript: string
+  transcript: string,
+  signal?: AbortSignal
 ): Promise<UrgencyAssessment | null> {
+  // Check if already aborted
+  if (signal?.aborted) {
+    return null;
+  }
+
   // Check online status
   if (!navigator.onLine) {
     return null;
@@ -94,6 +102,12 @@ export async function detectUrgency(
   // Wait for global rate limit before making the call
   await waitForRateLimit();
 
+  // Check again if aborted while waiting for rate limit
+  if (signal?.aborted) {
+    markRequestComplete();
+    return null;
+  }
+
   try {
     const response = await fetch(GROQ_API_URL, {
       method: "POST",
@@ -107,11 +121,13 @@ export async function detectUrgency(
         temperature: 0.1, // Low temperature for consistent output
         max_tokens: 200, // Lightweight - only need urgency assessment
       }),
+      signal, // Pass AbortSignal to fetch
     });
 
     if (!response.ok) {
       if (response.status === 429) {
         console.warn("Rate limit exceeded for urgency detection - skipping");
+        setCooldown(15);
         return null;
       }
       console.warn("Urgency detection API error:", response.status);
@@ -127,8 +143,15 @@ export async function detectUrgency(
 
     return parseUrgencyResponse(content);
   } catch (error) {
+    // Don't log abort errors - they're expected
+    if (error instanceof Error && error.name === "AbortError") {
+      return null;
+    }
     console.error("Urgency detection error:", error);
     return null;
+  } finally {
+    // Always mark request complete to release the lock
+    markRequestComplete();
   }
 }
 

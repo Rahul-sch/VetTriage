@@ -28,6 +28,7 @@ export function useUrgencyPulse(
   const lastAnalysisTimeRef = useRef<number>(0);
   const analysisIntervalRef = useRef<number | null>(null);
   const isAnalyzingRef = useRef<boolean>(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   // Use ref to access current segments without triggering effect re-runs
   const segmentsRef = useRef<TranscriptSegment[]>(segments);
 
@@ -59,8 +60,12 @@ export function useUrgencyPulse(
     }
 
     isAnalyzingRef.current = true;
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+
     try {
-      const assessment = await detectUrgency(transcript);
+      const assessment = await detectUrgency(transcript, abortControllerRef.current.signal);
       if (assessment) {
         setUrgency((prev) => {
           // Only escalate, never downgrade
@@ -82,12 +87,18 @@ export function useUrgencyPulse(
       }
     } finally {
       isAnalyzingRef.current = false;
+      abortControllerRef.current = null;
     }
   }, []);
 
   // Periodic analysis during recording
   useEffect(() => {
     if (!isRecording) {
+      // Abort any in-flight request first
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       // Clear interval when not recording
       if (analysisIntervalRef.current !== null) {
         window.clearInterval(analysisIntervalRef.current);
@@ -106,6 +117,11 @@ export function useUrgencyPulse(
     }, 6000);
 
     return () => {
+      // Abort any in-flight request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       if (analysisIntervalRef.current !== null) {
         window.clearInterval(analysisIntervalRef.current);
         analysisIntervalRef.current = null;
