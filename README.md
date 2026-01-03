@@ -14,37 +14,21 @@
 | -------------------------- | -------------------------------------------------------------- |
 | 🎙️ **Voice Recording**     | Real-time transcription using Web Speech API                   |
 | 👥 **Speaker Diarization** | Automatically distinguishes Vet vs Owner based on speech turns |
-| ⚡ **Real-Time Urgency Pulse** | Live urgency assessment during recording with visual indicators |
 | 🎯 **AI Confidence Scoring** | Transparent confidence levels (high/medium/low) for all fields |
 | 🤖 **AI Analysis**         | Groq (Llama 3.3 70B) extracts structured intake data           |
 | 📄 **PDF Reports**         | Professional one-page intake reports with jsPDF                |
 | ✏️ **Editable Reports**    | Human-in-the-loop editing with change tracking                 |
 | 🎵 **Audio Timeline**      | Click transcript segments to jump in audio playback            |
+| 📜 **Collapsible Transcript** | Full transcript view with diagnosis/recommendation highlighting |
+| 🧪 **Test Transcript**     | Always-available demo button to load mock conversation        |
 | 💾 **Session Persistence** | Auto-restore transcript, audio, and report across refreshes   |
+| 🔒 **Rate Limiting**       | Global rate limiter prevents API overload and 429 errors      |
 | 📱 **PWA**                 | Installable, works offline (UI cached)                         |
 | 🌐 **Zero Setup**          | Just open the URL — no app store, no downloads                 |
 
 ---
 
 ## 🎯 Key Features Explained
-
-### ⚡ Real-Time Urgency Pulse
-
-During active recording, VetTriage continuously analyzes the conversation every 4 seconds to assess urgency levels:
-
-- **🟢 Routine** (1-2): Wellness checks, non-urgent follow-ups
-- **🟡 Monitor** (3): Mild symptoms, can wait 24-48 hours
-- **🟠 Urgent** (4): Significant symptoms, should be seen today
-- **🔴 Emergency** (5): Life-threatening, immediate attention required
-
-**Key Behaviors:**
-- Urgency can only **escalate**, never downgrade during a session
-- Visual **pulse/glow animation** when urgency increases
-- **Alert banners** appear on escalation (e.g., "Possible toxin exposure detected")
-- Uses a lightweight Groq prompt focused solely on urgency detection
-- Does not interrupt recording or modify final report structure
-
-This demonstrates **proactive clinical decision support** — alerting staff to potential emergencies in real-time, not just after the conversation ends.
 
 ### 🎯 AI Confidence Scoring
 
@@ -55,6 +39,40 @@ Every field in the AI-generated report includes a confidence score (0.0-1.0) wit
 - **🔴 Low (0.0-0.49)**: Information inferred or unclear
 
 Hover over confidence indicators to see AI's reasoning notes. This transparency builds trust and helps staff identify fields that need human verification.
+
+### 📜 Collapsible Transcript View
+
+After recording completes, a collapsible transcript section appears below the audio player:
+
+- **Hidden by default** — Click "Show Transcript" to expand
+- **Full conversation** — Complete transcript with speaker labels (Vet/Owner)
+- **Smart highlighting** — Diagnosis/assessment statements highlighted in purple
+- **Recommendation highlighting** — Next steps and recommendations highlighted in green
+- **Audio sync** — Click any segment to jump to that moment in audio playback
+- **Active segment** — Current playback position is visually highlighted
+
+This provides a complete view of the conversation for review and verification.
+
+### 🧪 Test Transcript Feature
+
+A **"🧪 Load Test Transcript (Demo)"** button is always available for testing and demos:
+
+- **Always visible** — Available regardless of app state
+- **Full reset** — Clears transcript, report, error, audio, and session
+- **Mock conversation** — Loads a comprehensive test scenario covering all report fields
+- **Immediate analysis** — Click "Analyze Transcript" to test the full workflow without speaking
+
+Perfect for demos, testing, and development without needing to record actual conversations.
+
+### 🔒 Rate Limiting & Stability
+
+The app includes robust rate limiting to prevent API overload:
+
+- **Global rate limiter** — Ensures minimum 2-second interval between any Groq API calls
+- **Single-flight lock** — Prevents duplicate API calls (one click = one request)
+- **Cooldown management** — Automatic 15-second cooldown after 429 errors
+- **Defensive rendering** — Badges handle invalid data gracefully (no crashes)
+- **Error recovery** — App stays stable even when Groq returns unexpected values
 
 ---
 
@@ -171,9 +189,6 @@ sequenceDiagram
         App->>U: Show live text (italic)
         WSA->>App: Final transcript
         App->>U: Show confirmed text with speaker label
-        App->>AI: Analyze urgency (every 4s)
-        AI->>App: Urgency assessment
-        App->>U: Update urgency pulse indicator
     end
 
     U->>App: Tap Stop
@@ -227,7 +242,8 @@ VetTriage/
 │   │   ├── ReportPreview.tsx  # Structured report display
 │   │   ├── StatusBadge.tsx    # Recording state indicator
 │   │   ├── TranscriptDisplay.tsx # Live transcript with speakers
-│   │   ├── UrgencyPulse.tsx   # Real-time urgency indicator
+│   │   ├── CollapsibleTranscript.tsx # Full transcript view with highlighting
+│   │   ├── UrgencyPulse.tsx   # Real-time urgency indicator (disabled by default)
 │   │   ├── ConfidenceIndicator.tsx # AI confidence visual indicators
 │   │   └── UnsupportedBrowser.tsx # Browser fallback
 │   ├── hooks/
@@ -243,8 +259,9 @@ VetTriage/
 │   │   ├── veterinary-intake.ts # AI system prompt
 │   │   └── urgency-detection.ts # Lightweight urgency prompt
 │   ├── services/
-│   │   ├── groq.ts            # Groq API client
+│   │   ├── groq.ts            # Groq API client with single-flight lock
 │   │   ├── urgencyDetection.ts # Real-time urgency analysis
+│   │   ├── rateLimiter.ts     # Global rate limiting for API calls
 │   │   ├── pdfGenerator.ts    # jsPDF report builder
 │   │   └── sessionStorage.ts  # IndexedDB session persistence
 │   ├── types/
@@ -253,7 +270,9 @@ VetTriage/
 │   │   └── urgency.ts          # Urgency level types
 │   ├── utils/
 │   │   ├── browserSupport.ts  # Feature detection
-│   │   └── formatters.ts      # Date/time utilities
+│   │   ├── formatters.ts      # Date/time utilities
+│   │   ├── highlightDetection.ts # Keyword-based highlighting for transcript
+│   │   └── mockTranscript.ts  # Test transcript generator for demos
 │   ├── App.tsx                # Root component
 │   ├── main.tsx               # Entry point
 │   ├── index.css              # Tailwind imports
@@ -318,10 +337,9 @@ npm run preview  # Test production build locally
 
 - Tap the **Record** button to start
 - Speak naturally — the conversation is transcribed in real-time
-- **Real-Time Urgency Pulse** appears below header — updates every 6 seconds
 - Speaker changes are detected automatically (1.5s pause = switch)
 - Use **Switch Speaker** button to manually correct
-- Urgency can only escalate (never downgrade) during recording
+- Interim results appear in italic, final results appear normally
 
 ### 3. Analysis
 
@@ -353,6 +371,21 @@ npm run preview  # Test production build locally
 - After recording, audio player appears
 - Click any transcript segment to jump to that moment
 - Active segment is highlighted during playback
+
+### 7. Collapsible Transcript
+
+- After recording completes, a "Show Transcript" button appears
+- Click to expand the full conversation transcript
+- Diagnosis/assessment statements highlighted in purple
+- Recommendations/next steps highlighted in green
+- Click any segment to jump to that moment in audio
+
+### 8. Test Transcript (Demo)
+
+- **"🧪 Load Test Transcript (Demo)"** button is always visible
+- Click to load a comprehensive mock conversation
+- Perfect for testing and demos without recording
+- Click "Analyze Transcript" to test the full workflow
 
 ---
 
@@ -393,30 +426,39 @@ POST https://api.groq.com/openai/v1/chat/completions
 ```typescript
 interface IntakeReport {
   patient: {
-    name: string;
-    species: string;
-    breed: string;
-    age: string;
-    weight: string;
-    sex: string;
+    name: ConfidentField<string>;
+    species: ConfidentField<string>;
+    breed: ConfidentField<string>;
+    age: ConfidentField<string>;
+    weight: ConfidentField<string>;
+    sex: ConfidentField<string>;
   };
   owner: {
-    name: string;
-    phone: string;
-    email: string;
+    name: ConfidentField<string>;
+    phone: ConfidentField<string>;
+    email: ConfidentField<string>;
   };
-  chiefComplaint: string;
-  symptoms: string[];
-  duration: string;
-  severity: "mild" | "moderate" | "severe" | "critical";
-  medicalHistory: string;
-  currentMedications: string[];
-  allergies: string[];
-  vitalSigns: string;
-  assessment: string;
-  recommendedActions: string[];
-  urgencyLevel: 1 | 2 | 3 | 4 | 5;
-  notes: string;
+  chiefComplaint: ConfidentField<string>;
+  symptoms: ConfidentField<string[]>;
+  duration: ConfidentField<string>;
+  severity: ConfidentField<"mild" | "moderate" | "severe" | "critical">;
+  medicalHistory: ConfidentField<string>;
+  currentMedications: ConfidentField<string[]>;
+  allergies: ConfidentField<string[]>;
+  vitalSigns: ConfidentField<string>;
+  assessment: ConfidentField<string>;
+  recommendedActions: ConfidentField<string[]>;
+  urgencyLevel: ConfidentField<1 | 2 | 3 | 4 | 5>;
+  notes: ConfidentField<string>;
+}
+
+interface ConfidentField<T> {
+  value: T;
+  confidence: {
+    score: number; // 0.0 - 1.0
+    level: "high" | "medium" | "low";
+    note?: string; // Explanation for confidence or uncertainty
+  };
 }
 ```
 
@@ -452,10 +494,11 @@ interface TranscriptSegment {
 
 If you see "Rate limit exceeded" errors:
 
-1. **Wait 1-2 minutes** — Groq rate limits reset quickly
-2. **Urgency pulse is throttled** — Automatically reduces API calls (6s interval, 5s cooldown)
-3. **Main analysis is prioritized** — Urgency pulse failures won't block report generation
+1. **Wait 15 seconds** — The app automatically sets a cooldown period
+2. **Global rate limiter** — Ensures minimum 2-second interval between API calls
+3. **Single-flight lock** — Prevents duplicate calls (one click = one request)
 4. **Check your Groq usage** — Visit [Groq Console](https://console.groq.com) to monitor API usage
+5. **Note:** Real-Time Urgency Pulse is currently disabled by default to prevent rate limits
 
 ### Blank Screen During Analysis
 
