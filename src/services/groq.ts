@@ -251,10 +251,6 @@ function transformToReport(raw: Record<string, unknown>): IntakeReport {
       }
       return field;
     })(),
-    recommendedActions: normalizeConfidentField(
-      raw.recommendedActions as RawConfidentField<string[]>,
-      []
-    ),
     notes: normalizeConfidentField(
       raw.notes as RawConfidentField<string>,
       ""
