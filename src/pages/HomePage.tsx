@@ -316,7 +316,7 @@ export function HomePage() {
   // Create visit link
   const handleCreateVisit = useCallback(async () => {
     if (isCreatingVisit) return;
-    
+
     setIsCreatingVisit(true);
     try {
       const visit = await createVisit();

@@ -35,7 +35,7 @@ export function OwnerSummaryPage() {
 
       try {
         const foundVisit = await getVisitByToken(visitToken);
-        
+
         if (!foundVisit) {
           // Visit not found, redirect to intake
           navigate(`/owner/${visitToken}`, { replace: true });
@@ -140,56 +140,77 @@ export function OwnerSummaryPage() {
           {/* Header Card */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-slate-800">Visit Summary</h2>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS_COLORS[visit.status]}`}>
+              <h2 className="text-2xl font-bold text-slate-800">
+                Visit Summary
+              </h2>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  STATUS_COLORS[visit.status]
+                }`}
+              >
                 {STATUS_LABELS[visit.status]}
               </span>
             </div>
             <p className="text-sm text-slate-600">
-              Visit Token: <span className="font-mono text-slate-800">{visitToken}</span>
+              Visit Token:{" "}
+              <span className="font-mono text-slate-800">{visitToken}</span>
             </p>
-            <p className="text-sm text-slate-600">
-              Date: {visitDate}
-            </p>
+            <p className="text-sm text-slate-600">Date: {visitDate}</p>
           </div>
 
           {intakeData ? (
             <>
               {/* Patient Info Card */}
               <div className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">Patient Information</h3>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                  Patient Information
+                </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-slate-500">Pet Name</p>
-                    <p className="font-medium text-slate-800">{intakeData.petName}</p>
+                    <p className="font-medium text-slate-800">
+                      {intakeData.petName}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Symptoms Card */}
               <div className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">Symptoms</h3>
-                <p className="text-slate-700 whitespace-pre-wrap">{intakeData.symptoms}</p>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                  Symptoms
+                </h3>
+                <p className="text-slate-700 whitespace-pre-wrap">
+                  {intakeData.symptoms}
+                </p>
                 <p className="mt-4 text-sm text-slate-600">
-                  <span className="font-medium">Duration:</span> {intakeData.duration}
+                  <span className="font-medium">Duration:</span>{" "}
+                  {intakeData.duration}
                 </p>
               </div>
 
               {/* Concerns Card */}
               {intakeData.concerns && (
                 <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Additional Concerns</h3>
-                  <p className="text-slate-700 whitespace-pre-wrap">{intakeData.concerns}</p>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                    Additional Concerns
+                  </h3>
+                  <p className="text-slate-700 whitespace-pre-wrap">
+                    {intakeData.concerns}
+                  </p>
                 </div>
               )}
 
               {/* Assessment Card */}
               <div className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">Clinical Assessment</h3>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                  Clinical Assessment
+                </h3>
                 <p className="text-slate-700">
                   {visit.status === "shared"
                     ? "The veterinary assessment will be available here once the visit is complete."
-                    : visit.status === "intake_complete" || visit.status === "pending_intake"
+                    : visit.status === "intake_complete" ||
+                      visit.status === "pending_intake"
                     ? "Pending veterinary review"
                     : "Assessment will be available after veterinary review"}
                 </p>
@@ -212,7 +233,8 @@ export function OwnerSummaryPage() {
           {/* Footer Note */}
           <div className="bg-slate-100 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-600">
-              This summary is for informational purposes. Please contact your veterinarian for any urgent concerns.
+              This summary is for informational purposes. Please contact your
+              veterinarian for any urgent concerns.
             </p>
           </div>
         </div>
@@ -220,4 +242,3 @@ export function OwnerSummaryPage() {
     </div>
   );
 }
-

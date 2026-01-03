@@ -35,7 +35,7 @@ export function OwnerIntakePage() {
 
       try {
         const currentVisit = await getVisitByToken(visitToken);
-        
+
         if (!currentVisit) {
           // Visit not found - in production, visits would be created server-side
           // For now, we'll show an error state
@@ -95,10 +95,7 @@ export function OwnerIntakePage() {
     }
   };
 
-  const handleChange = (
-    field: keyof IntakeFormData,
-    value: string
-  ) => {
+  const handleChange = (field: keyof IntakeFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -149,7 +146,9 @@ export function OwnerIntakePage() {
               Visit Not Found
             </h2>
             <p className="text-slate-600 mb-4">
-              The visit token <span className="font-mono text-slate-800">{visitToken}</span> could not be found.
+              The visit token{" "}
+              <span className="font-mono text-slate-800">{visitToken}</span>{" "}
+              could not be found.
             </p>
             <p className="text-sm text-slate-500">
               Please check your link or contact the veterinary clinic.
@@ -190,7 +189,8 @@ export function OwnerIntakePage() {
               Thank You!
             </h2>
             <p className="text-slate-600 mb-6">
-              Your intake information has been submitted successfully. The veterinary team will review it shortly.
+              Your intake information has been submitted successfully. The
+              veterinary team will review it shortly.
             </p>
             <button
               onClick={() => navigate(`/owner/${visitToken}/summary`)}
@@ -223,7 +223,10 @@ export function OwnerIntakePage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-xl shadow-sm p-6 space-y-6"
+          >
             {/* Pet Name */}
             <div>
               <label
@@ -324,4 +327,3 @@ export function OwnerIntakePage() {
     </div>
   );
 }
-

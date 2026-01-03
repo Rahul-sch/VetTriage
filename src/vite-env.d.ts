@@ -75,4 +75,3 @@ interface Window {
 }
 
 declare const SpeechRecognition: SpeechRecognitionConstructor | undefined;
-

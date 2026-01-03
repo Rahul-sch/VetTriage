@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { FormEvent, ChangeEvent } from "react";
 import { setApiKey, hasApiKey } from "../services/groq";
 
 interface ApiKeyModalProps {
@@ -9,7 +10,7 @@ export function ApiKeyModal({ onKeySet }: ApiKeyModalProps) {
   const [key, setKey] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
     if (!key.trim()) {
@@ -49,7 +50,7 @@ export function ApiKeyModal({ onKeySet }: ApiKeyModalProps) {
           <input
             type="password"
             value={key}
-            onChange={(e) => {
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
               setKey(e.target.value);
               setError("");
             }}
@@ -83,4 +84,3 @@ export function ApiKeyModal({ onKeySet }: ApiKeyModalProps) {
     </div>
   );
 }
-

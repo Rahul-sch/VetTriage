@@ -83,7 +83,11 @@ export function ReportPreview({
                   ? "bg-slate-300 text-slate-500 cursor-not-allowed"
                   : "text-white bg-purple-600 hover:bg-purple-700"
               }`}
-              title={!report ? "Generate report first to share" : "Share summary with owner"}
+              title={
+                !report
+                  ? "Generate report first to share"
+                  : "Share summary with owner"
+              }
             >
               Share with Owner
             </button>
