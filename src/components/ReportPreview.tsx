@@ -1,10 +1,18 @@
 import { useEffect, useMemo } from "react";
-import type { IntakeReport, ConfidentField, ConfidenceMetadata } from "../types/report";
+import type {
+  IntakeReport,
+  ConfidentField,
+  ConfidenceMetadata,
+} from "../types/report";
 import type { Visit } from "../types/visit";
 import { DownloadButton } from "./DownloadButton";
 import { EditableField } from "./EditableField";
 import { EditableList } from "./EditableList";
-import { ConfidenceIndicator, ConfidenceLegend, ConfidenceBar } from "./ConfidenceIndicator";
+import {
+  ConfidenceIndicator,
+  ConfidenceLegend,
+  ConfidenceBar,
+} from "./ConfidenceIndicator";
 import { useEditableReport } from "../hooks/useEditableReport";
 
 interface ReportPreviewProps {
@@ -17,7 +25,12 @@ interface ReportPreviewProps {
   onShareSummary?: () => void;
 }
 
-export function ReportPreview({ report: initialReport, onReportEdit, visit, onShareSummary }: ReportPreviewProps) {
+export function ReportPreview({
+  report: initialReport,
+  onReportEdit,
+  visit,
+  onShareSummary,
+}: ReportPreviewProps) {
   const { report, isEdited, updateField, hasEdits, resetEdits } =
     useEditableReport(initialReport);
 
@@ -47,8 +60,8 @@ export function ReportPreview({ report: initialReport, onReportEdit, visit, onSh
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-slate-800">Intake Report</h2>
-          <UrgencyBadge 
-            level={report.urgencyLevel.value} 
+          <UrgencyBadge
+            level={report.urgencyLevel.value}
             confidence={report.urgencyLevel.confidence}
           />
           {hasEdits && (
@@ -64,7 +77,13 @@ export function ReportPreview({ report: initialReport, onReportEdit, visit, onSh
           {visit && onShareSummary && visit.status !== "shared" && (
             <button
               onClick={onShareSummary}
-              className="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+              disabled={!report}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                !report
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  : "text-white bg-purple-600 hover:bg-purple-700"
+              }`}
+              title={!report ? "Generate report first to share" : "Share summary with owner"}
             >
               Share with Owner
             </button>
@@ -86,7 +105,8 @@ export function ReportPreview({ report: initialReport, onReportEdit, visit, onSh
 
       {/* Edit instructions */}
       <p className="text-xs text-slate-500 bg-slate-100 px-3 py-2 rounded-lg">
-        💡 Click any field to edit. Hover over indicators to see AI confidence notes.
+        💡 Click any field to edit. Hover over indicators to see AI confidence
+        notes.
       </p>
 
       {/* Patient Info Card */}
@@ -156,7 +176,10 @@ export function ReportPreview({ report: initialReport, onReportEdit, visit, onSh
       </Card>
 
       {/* Chief Complaint */}
-      <Card title="Chief Complaint" confidence={report.chiefComplaint.confidence}>
+      <Card
+        title="Chief Complaint"
+        confidence={report.chiefComplaint.confidence}
+      >
         <EditableField
           value={report.chiefComplaint.value}
           onSave={(v) => updateField("chiefComplaint", v)}
@@ -165,8 +188,8 @@ export function ReportPreview({ report: initialReport, onReportEdit, visit, onSh
           className="text-slate-700"
         />
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <SeverityBadge 
-            severity={report.severity.value} 
+          <SeverityBadge
+            severity={report.severity.value}
             confidence={report.severity.confidence}
           />
           <span className="text-sm text-slate-500 flex items-center gap-1">
@@ -193,7 +216,10 @@ export function ReportPreview({ report: initialReport, onReportEdit, visit, onSh
       </Card>
 
       {/* Medical History */}
-      <Card title="Medical History" confidence={report.medicalHistory.confidence}>
+      <Card
+        title="Medical History"
+        confidence={report.medicalHistory.confidence}
+      >
         <EditableField
           value={report.medicalHistory.value}
           onSave={(v) => updateField("medicalHistory", v)}
@@ -205,7 +231,10 @@ export function ReportPreview({ report: initialReport, onReportEdit, visit, onSh
 
       {/* Medications & Allergies */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card title="Current Medications" confidence={report.currentMedications.confidence}>
+        <Card
+          title="Current Medications"
+          confidence={report.currentMedications.confidence}
+        >
           <EditableList
             items={report.currentMedications.value}
             onSave={(v) => updateField("currentMedications", v)}
@@ -224,19 +253,25 @@ export function ReportPreview({ report: initialReport, onReportEdit, visit, onSh
       </div>
 
       {/* Vital Signs */}
-      {report.vitalSigns.value && report.vitalSigns.value !== "Not mentioned" && report.vitalSigns.value !== "Not recorded" && (
-        <Card title="Vital Signs" confidence={report.vitalSigns.confidence}>
-          <EditableField
-            value={report.vitalSigns.value}
-            onSave={(v) => updateField("vitalSigns", v)}
-            isEdited={isEdited("vitalSigns")}
-            className="text-slate-700"
-          />
-        </Card>
-      )}
+      {report.vitalSigns.value &&
+        report.vitalSigns.value !== "Not mentioned" &&
+        report.vitalSigns.value !== "Not recorded" && (
+          <Card title="Vital Signs" confidence={report.vitalSigns.confidence}>
+            <EditableField
+              value={report.vitalSigns.value}
+              onSave={(v) => updateField("vitalSigns", v)}
+              isEdited={isEdited("vitalSigns")}
+              className="text-slate-700"
+            />
+          </Card>
+        )}
 
       {/* Assessment */}
-      <Card title="Clinical Assessment" highlight confidence={report.assessment.confidence}>
+      <Card
+        title="Clinical Assessment"
+        highlight
+        confidence={report.assessment.confidence}
+      >
         <EditableField
           value={report.assessment.value}
           onSave={(v) => updateField("assessment", v)}
@@ -247,7 +282,10 @@ export function ReportPreview({ report: initialReport, onReportEdit, visit, onSh
       </Card>
 
       {/* Recommended Actions */}
-      <Card title="Recommended Actions" confidence={report.recommendedActions.confidence}>
+      <Card
+        title="Recommended Actions"
+        confidence={report.recommendedActions.confidence}
+      >
         <EditableList
           items={report.recommendedActions.value}
           onSave={(v) => updateField("recommendedActions", v)}
@@ -258,7 +296,10 @@ export function ReportPreview({ report: initialReport, onReportEdit, visit, onSh
       </Card>
 
       {/* Notes */}
-      {(report.notes.value && report.notes.value !== "Not mentioned" && report.notes.value !== "") || hasEdits ? (
+      {(report.notes.value &&
+        report.notes.value !== "Not mentioned" &&
+        report.notes.value !== "") ||
+      hasEdits ? (
         <Card title="Additional Notes" confidence={report.notes.confidence}>
           <EditableField
             value={report.notes.value || ""}
@@ -299,7 +340,9 @@ function Card({
     <div
       className={`
         rounded-xl p-4 shadow-sm border
-        ${highlight ? "bg-teal-50 border-teal-200" : "bg-white border-slate-200"}
+        ${
+          highlight ? "bg-teal-50 border-teal-200" : "bg-white border-slate-200"
+        }
       `}
     >
       <div className="flex items-center justify-between mb-2">
@@ -349,10 +392,10 @@ function ConfidentInfoItem({
   );
 }
 
-function UrgencyBadge({ 
-  level, 
-  confidence 
-}: { 
+function UrgencyBadge({
+  level,
+  confidence,
+}: {
   level: 1 | 2 | 3 | 4 | 5;
   confidence: ConfidenceMetadata;
 }) {
@@ -373,9 +416,7 @@ function UrgencyBadge({
     console.warn(`Invalid urgency level: ${level}. Expected 1-5, got:`, level);
     // Render neutral fallback badge
     return (
-      <span
-        className="px-3 py-1 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 bg-slate-100 text-slate-600"
-      >
+      <span className="px-3 py-1 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 bg-slate-100 text-slate-600">
         Unknown
         <ConfidenceIndicator confidence={confidence} />
       </span>
@@ -409,19 +450,23 @@ function SeverityBadge({
   };
 
   // Defensive: handle invalid or missing severity
-  const isValidSeverity = 
-    typeof severity === "string" && 
-    (severity === "mild" || severity === "moderate" || severity === "severe" || severity === "critical");
+  const isValidSeverity =
+    typeof severity === "string" &&
+    (severity === "mild" ||
+      severity === "moderate" ||
+      severity === "severe" ||
+      severity === "critical");
   const badgeConfig = isValidSeverity ? config[severity] : null;
 
   if (!badgeConfig) {
     // Log warning for invalid severity
-    console.warn(`Invalid severity: ${severity}. Expected 'mild'|'moderate'|'severe'|'critical', got:`, severity);
+    console.warn(
+      `Invalid severity: ${severity}. Expected 'mild'|'moderate'|'severe'|'critical', got:`,
+      severity
+    );
     // Render neutral fallback badge
     return (
-      <span
-        className="px-2 py-0.5 rounded text-xs font-medium capitalize inline-flex items-center gap-1 bg-slate-100 text-slate-600"
-      >
+      <span className="px-2 py-0.5 rounded text-xs font-medium capitalize inline-flex items-center gap-1 bg-slate-100 text-slate-600">
         Unknown
         <ConfidenceIndicator confidence={confidence} />
       </span>

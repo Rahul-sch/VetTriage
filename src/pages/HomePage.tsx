@@ -27,15 +27,25 @@ import {
 import { getMockTranscript } from "../utils/mockTranscript";
 import { isInCooldown, getCooldownRemaining } from "../services/rateLimiter";
 import type { IntakeReport } from "../types/report";
-import { createVisit, getVisitByToken, updateVisitStatus } from "../services/visitStorage";
+import {
+  createVisit,
+  getVisitByToken,
+  updateVisitStatus,
+} from "../services/visitStorage";
 import type { Visit } from "../types/visit";
 
 // Feature flag: Real-Time Urgency Pulse (disabled for stability)
 const ENABLE_URGENCY_PULSE = false;
 
 export function HomePage() {
-  const { state, startRecording, stopRecording, completeProcessing, reset, setState } =
-    useRecordingState();
+  const {
+    state,
+    startRecording,
+    stopRecording,
+    completeProcessing,
+    reset,
+    setState,
+  } = useRecordingState();
   const {
     isSupported,
     segments,
@@ -73,7 +83,7 @@ export function HomePage() {
 
   // Ref for audio player to allow seeking
   const audioSeekTimeRef = useRef<number | null>(null);
-  
+
   // Single-flight lock for runAnalysis
   const isRunningAnalysisRef = useRef<boolean>(false);
 
@@ -148,7 +158,13 @@ export function HomePage() {
       stopListening();
       stopAudioRecording();
     }
-  }, [state, startListening, stopListening, startAudioRecording, stopAudioRecording]);
+  }, [
+    state,
+    startListening,
+    stopListening,
+    startAudioRecording,
+    stopAudioRecording,
+  ]);
 
   // Update cooldown timer
   useEffect(() => {
@@ -282,11 +298,11 @@ export function HomePage() {
     setReport(null); // Clear any existing report
     setAnalysisError(null); // Clear any errors
     setIsTestTranscriptMode(true); // Enable test mode
-    
+
     // Load mock transcript
     const mockSegments = getMockTranscript();
     setSegments(mockSegments);
-    
+
     // Clear session to ensure clean state
     clearSession().catch(console.error);
   }, [reset, resetSpeech, resetAudio, setSegments]);
@@ -299,43 +315,78 @@ export function HomePage() {
 
   // Create visit link
   const handleCreateVisit = useCallback(async () => {
+    if (isCreatingVisit) return;
+    
     setIsCreatingVisit(true);
     try {
       const visit = await createVisit();
-      setCurrentVisit(visit);
-      const url = `${window.location.origin}/owner/${visit.visitToken}`;
-      setVisitUrl(url);
+      if (visit && visit.visitToken) {
+        setCurrentVisit(visit);
+        const url = `${window.location.origin}/owner/${visit.visitToken}`;
+        setVisitUrl(url);
+      } else {
+        throw new Error("Invalid visit response");
+      }
     } catch (error) {
       console.error("Failed to create visit:", error);
-      alert("Failed to create visit. Please try again.");
+      alert(
+        error instanceof Error
+          ? `Failed to create visit: ${error.message}`
+          : "Failed to create visit. Please try again."
+      );
     } finally {
       setIsCreatingVisit(false);
     }
-  }, []);
+  }, [isCreatingVisit]);
 
   // Copy visit URL to clipboard
-  const handleCopyVisitUrl = useCallback(() => {
-    if (visitUrl) {
-      navigator.clipboard.writeText(visitUrl);
-      alert("Visit URL copied to clipboard!");
+  const handleCopyVisitUrl = useCallback(async () => {
+    if (!visitUrl) return;
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(visitUrl);
+        alert("Visit URL copied to clipboard!");
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement("textarea");
+        textArea.value = visitUrl;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        alert("Visit URL copied to clipboard!");
+      }
+    } catch (error) {
+      console.error("Failed to copy URL:", error);
+      alert("Failed to copy URL. Please copy it manually.");
     }
   }, [visitUrl]);
 
   // Share summary with owner
   const handleShareSummary = useCallback(async () => {
-    if (!currentVisit) return;
-    
+    if (!currentVisit || !report) return;
+
     try {
-      const updated = await updateVisitStatus(currentVisit.visitToken, "shared");
+      const updated = await updateVisitStatus(
+        currentVisit.visitToken,
+        "shared"
+      );
       if (updated) {
         setCurrentVisit(updated);
-        alert("Summary shared with owner! They can now view it at the visit link.");
+        alert(
+          "Summary shared with owner! They can now view it at the visit link."
+        );
+      } else {
+        alert("Failed to share summary. Please try again.");
       }
     } catch (error) {
       console.error("Failed to share summary:", error);
       alert("Failed to share summary. Please try again.");
     }
-  }, [currentVisit]);
+  }, [currentVisit, report]);
 
   // Show fallback for unsupported browsers
   if (!isSupported) {
@@ -346,8 +397,8 @@ export function HomePage() {
   const displayError = state === "recording" ? null : speechError;
 
   // Show collapsible transcript after recording completes
-  const showCollapsibleTranscript = 
-    (state === "complete" || state === "processing") && 
+  const showCollapsibleTranscript =
+    (state === "complete" || state === "processing") &&
     segmentsWithTimes.length > 0;
 
   return (
@@ -416,36 +467,58 @@ export function HomePage() {
           /* Report available */
           <>
             {/* Owner Intake Data (if available) */}
-            {currentVisit?.intakeData && (
+            {currentVisit?.intakeData && currentVisit.intakeData.petName && (
               <div className="w-full max-w-2xl mx-auto bg-blue-50 border border-blue-200 rounded-xl shadow-sm p-6 mb-4">
                 <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                   <span>📋</span>
                   Owner Intake Information
                 </h3>
                 <div className="space-y-3 text-sm">
-                  <div>
-                    <span className="font-medium text-slate-700">Pet Name:</span>{" "}
-                    <span className="text-slate-800">{currentVisit.intakeData.petName}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-700">Symptoms:</span>
-                    <p className="text-slate-800 mt-1 whitespace-pre-wrap">{currentVisit.intakeData.symptoms}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-700">Duration:</span>{" "}
-                    <span className="text-slate-800">{currentVisit.intakeData.duration}</span>
-                  </div>
+                  {currentVisit.intakeData.petName && (
+                    <div>
+                      <span className="font-medium text-slate-700">
+                        Pet Name:
+                      </span>{" "}
+                      <span className="text-slate-800">
+                        {currentVisit.intakeData.petName}
+                      </span>
+                    </div>
+                  )}
+                  {currentVisit.intakeData.symptoms && (
+                    <div>
+                      <span className="font-medium text-slate-700">
+                        Symptoms:
+                      </span>
+                      <p className="text-slate-800 mt-1 whitespace-pre-wrap">
+                        {currentVisit.intakeData.symptoms}
+                      </p>
+                    </div>
+                  )}
+                  {currentVisit.intakeData.duration && (
+                    <div>
+                      <span className="font-medium text-slate-700">
+                        Duration:
+                      </span>{" "}
+                      <span className="text-slate-800">
+                        {currentVisit.intakeData.duration}
+                      </span>
+                    </div>
+                  )}
                   {currentVisit.intakeData.concerns && (
                     <div>
-                      <span className="font-medium text-slate-700">Additional Concerns:</span>
-                      <p className="text-slate-800 mt-1 whitespace-pre-wrap">{currentVisit.intakeData.concerns}</p>
+                      <span className="font-medium text-slate-700">
+                        Additional Concerns:
+                      </span>
+                      <p className="text-slate-800 mt-1 whitespace-pre-wrap">
+                        {currentVisit.intakeData.concerns}
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
             )}
-            <ReportPreview 
-              report={report} 
+            <ReportPreview
+              report={report}
               onReportEdit={handleReportEdit}
               visit={currentVisit}
               onShareSummary={currentVisit ? handleShareSummary : undefined}
@@ -500,7 +573,8 @@ export function HomePage() {
                 No Report Available
               </h3>
               <p className="text-slate-600 mb-4">
-                Analysis completed but no report was generated. Please try again.
+                Analysis completed but no report was generated. Please try
+                again.
               </p>
             </div>
           </div>
@@ -550,7 +624,9 @@ export function HomePage() {
           {/* Visit URL display */}
           {visitUrl && (
             <div className="w-full max-w-md bg-white border border-teal-200 rounded-lg p-4 space-y-2">
-              <p className="text-xs font-medium text-slate-700">Owner Visit Link:</p>
+              <p className="text-xs font-medium text-slate-700">
+                Owner Visit Link:
+              </p>
               <div className="flex items-center gap-2">
                 <input
                   type="text"

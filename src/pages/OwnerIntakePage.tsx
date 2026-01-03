@@ -16,6 +16,8 @@ export function OwnerIntakePage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [visit, setVisit] = useState<Visit | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState<IntakeFormData>({
     petName: "",
     symptoms: "",
@@ -61,24 +63,35 @@ export function OwnerIntakePage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!visitToken) return;
+    if (!visitToken || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
       // Submit intake data and update visit status
       const updatedVisit = await submitIntakeData(visitToken, {
-        petName: formData.petName,
-        symptoms: formData.symptoms,
-        duration: formData.duration,
-        concerns: formData.concerns,
+        petName: formData.petName.trim(),
+        symptoms: formData.symptoms.trim(),
+        duration: formData.duration.trim(),
+        concerns: formData.concerns.trim(),
       });
 
       if (updatedVisit) {
         setVisit(updatedVisit);
         setIsSubmitted(true);
+      } else {
+        setSubmitError("Failed to submit intake. Please try again.");
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error("Failed to submit intake:", error);
-      // TODO: Show error message to user
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Failed to submit intake. Please try again."
+      );
+      setIsSubmitting(false);
     }
   };
 
@@ -286,12 +299,24 @@ export function OwnerIntakePage() {
               />
             </div>
 
+            {/* Error message */}
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-700">{submitError}</p>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full px-4 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+              disabled={isSubmitting}
+              className={`w-full px-4 py-3 font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
+                isSubmitting
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  : "bg-teal-600 text-white hover:bg-teal-700"
+              }`}
             >
-              Submit Intake Form
+              {isSubmitting ? "Submitting..." : "Submit Intake Form"}
             </button>
           </form>
         </div>
