@@ -27,6 +27,8 @@ import {
 import { getMockTranscript } from "../utils/mockTranscript";
 import { isInCooldown, getCooldownRemaining } from "../services/rateLimiter";
 import type { IntakeReport } from "../types/report";
+import { createVisit, getVisitByToken, updateVisitStatus } from "../services/visitStorage";
+import type { Visit } from "../types/visit";
 
 // Feature flag: Real-Time Urgency Pulse (disabled for stability)
 const ENABLE_URGENCY_PULSE = false;
@@ -65,6 +67,9 @@ export function HomePage() {
   const [sessionRestored, setSessionRestored] = useState(false);
   const [isTestTranscriptMode, setIsTestTranscriptMode] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [currentVisit, setCurrentVisit] = useState<Visit | null>(null);
+  const [visitUrl, setVisitUrl] = useState<string | null>(null);
+  const [isCreatingVisit, setIsCreatingVisit] = useState(false);
 
   // Ref for audio player to allow seeking
   const audioSeekTimeRef = useRef<number | null>(null);
@@ -292,6 +297,46 @@ export function HomePage() {
     runAnalysis();
   }, [state, segments.length, runAnalysis]);
 
+  // Create visit link
+  const handleCreateVisit = useCallback(async () => {
+    setIsCreatingVisit(true);
+    try {
+      const visit = await createVisit();
+      setCurrentVisit(visit);
+      const url = `${window.location.origin}/owner/${visit.visitToken}`;
+      setVisitUrl(url);
+    } catch (error) {
+      console.error("Failed to create visit:", error);
+      alert("Failed to create visit. Please try again.");
+    } finally {
+      setIsCreatingVisit(false);
+    }
+  }, []);
+
+  // Copy visit URL to clipboard
+  const handleCopyVisitUrl = useCallback(() => {
+    if (visitUrl) {
+      navigator.clipboard.writeText(visitUrl);
+      alert("Visit URL copied to clipboard!");
+    }
+  }, [visitUrl]);
+
+  // Share summary with owner
+  const handleShareSummary = useCallback(async () => {
+    if (!currentVisit) return;
+    
+    try {
+      const updated = await updateVisitStatus(currentVisit.visitToken, "shared");
+      if (updated) {
+        setCurrentVisit(updated);
+        alert("Summary shared with owner! They can now view it at the visit link.");
+      }
+    } catch (error) {
+      console.error("Failed to share summary:", error);
+      alert("Failed to share summary. Please try again.");
+    }
+  }, [currentVisit]);
+
   // Show fallback for unsupported browsers
   if (!isSupported) {
     return <UnsupportedBrowser />;
@@ -369,7 +414,43 @@ export function HomePage() {
           </div>
         ) : state === "complete" && report ? (
           /* Report available */
-          <ReportPreview report={report} onReportEdit={handleReportEdit} />
+          <>
+            {/* Owner Intake Data (if available) */}
+            {currentVisit?.intakeData && (
+              <div className="w-full max-w-2xl mx-auto bg-blue-50 border border-blue-200 rounded-xl shadow-sm p-6 mb-4">
+                <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                  <span>📋</span>
+                  Owner Intake Information
+                </h3>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="font-medium text-slate-700">Pet Name:</span>{" "}
+                    <span className="text-slate-800">{currentVisit.intakeData.petName}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-700">Symptoms:</span>
+                    <p className="text-slate-800 mt-1 whitespace-pre-wrap">{currentVisit.intakeData.symptoms}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-700">Duration:</span>{" "}
+                    <span className="text-slate-800">{currentVisit.intakeData.duration}</span>
+                  </div>
+                  {currentVisit.intakeData.concerns && (
+                    <div>
+                      <span className="font-medium text-slate-700">Additional Concerns:</span>
+                      <p className="text-slate-800 mt-1 whitespace-pre-wrap">{currentVisit.intakeData.concerns}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            <ReportPreview 
+              report={report} 
+              onReportEdit={handleReportEdit}
+              visit={currentVisit}
+              onShareSummary={currentVisit ? handleShareSummary : undefined}
+            />
+          </>
         ) : state === "complete" && analysisError ? (
           /* Analysis error */
           <div className="flex-1 w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm border-2 border-red-300 p-6">
@@ -450,6 +531,42 @@ export function HomePage() {
             }}
             onReset={handleReset}
           />
+
+          {/* Create Visit Link button */}
+          {!currentVisit && (
+            <button
+              onClick={handleCreateVisit}
+              disabled={isCreatingVisit}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                isCreatingVisit
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  : "text-white bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              {isCreatingVisit ? "Creating..." : "🔗 Create Visit Link"}
+            </button>
+          )}
+
+          {/* Visit URL display */}
+          {visitUrl && (
+            <div className="w-full max-w-md bg-white border border-teal-200 rounded-lg p-4 space-y-2">
+              <p className="text-xs font-medium text-slate-700">Owner Visit Link:</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={visitUrl}
+                  className="flex-1 px-3 py-1.5 text-xs font-mono bg-slate-50 border border-slate-300 rounded focus:outline-none"
+                />
+                <button
+                  onClick={handleCopyVisitUrl}
+                  className="px-3 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded transition-colors"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Test transcript button - always available for demo/testing */}
           <button

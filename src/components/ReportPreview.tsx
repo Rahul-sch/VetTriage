@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import type { IntakeReport, ConfidentField, ConfidenceMetadata } from "../types/report";
+import type { Visit } from "../types/visit";
 import { DownloadButton } from "./DownloadButton";
 import { EditableField } from "./EditableField";
 import { EditableList } from "./EditableList";
@@ -10,9 +11,13 @@ interface ReportPreviewProps {
   report: IntakeReport;
   /** Called when user edits the report (for persistence) */
   onReportEdit?: (editedReport: IntakeReport) => void;
+  /** Current visit (if linked) */
+  visit?: Visit | null;
+  /** Called when user wants to share summary with owner */
+  onShareSummary?: () => void;
 }
 
-export function ReportPreview({ report: initialReport, onReportEdit }: ReportPreviewProps) {
+export function ReportPreview({ report: initialReport, onReportEdit, visit, onShareSummary }: ReportPreviewProps) {
   const { report, isEdited, updateField, hasEdits, resetEdits } =
     useEditableReport(initialReport);
 
@@ -55,7 +60,22 @@ export function ReportPreview({ report: initialReport, onReportEdit }: ReportPre
             </button>
           )}
         </div>
-        <DownloadButton report={report} />
+        <div className="flex items-center gap-2">
+          {visit && onShareSummary && visit.status !== "shared" && (
+            <button
+              onClick={onShareSummary}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+            >
+              Share with Owner
+            </button>
+          )}
+          {visit && visit.status === "shared" && (
+            <span className="px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-100 rounded-lg">
+              ✓ Shared
+            </span>
+          )}
+          <DownloadButton report={report} />
+        </div>
       </div>
 
       {/* Confidence overview */}
