@@ -1,6 +1,6 @@
 # 🐾 VetTriage
 
-**AI-powered veterinary intake assistant** — A production-ready PWA that passively records veterinary conversations, transcribes them in real-time with speaker diarization, analyzes the transcript with AI, and generates structured intake reports downloadable as PDF.
+**AI-powered veterinary intake assistant** — A production-ready PWA that passively records veterinary conversations, transcribes them in real-time with speaker diarization, analyzes the transcript with AI, and generates structured intake reports downloadable as PDF. Includes an owner platform for pre-visit intake forms and post-visit summary sharing.
 
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://vettriage.vercel.app)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -23,6 +23,9 @@
 | 🧪 **Test Transcript**     | Always-available demo button to load mock conversation        |
 | 💾 **Session Persistence** | Auto-restore transcript, audio, and report across refreshes   |
 | 🔒 **Rate Limiting**       | Global rate limiter prevents API overload and 429 errors      |
+| 🔗 **Visit Token System**  | Unique visit tokens for owner-vet communication               |
+| 👤 **Owner Platform**      | Owner intake forms and summary viewing via shareable links    |
+| 💾 **Supabase Integration** | Visit data persisted in Supabase (replaces localStorage)       |
 | 📱 **PWA**                 | Installable, works offline (UI cached)                         |
 | 🌐 **Zero Setup**          | Just open the URL — no app store, no downloads                 |
 
@@ -74,6 +77,32 @@ The app includes robust rate limiting to prevent API overload:
 - **Defensive rendering** — Badges handle invalid data gracefully (no crashes)
 - **Error recovery** — App stays stable even when Groq returns unexpected values
 
+### 🔗 Visit Token System
+
+The app uses a visit-centric workflow with unique tokens:
+
+- **Vet creates visit** — Click "Create Visit Link" to generate a unique 12-character token
+- **Owner access** — Share the link (`/owner/{visitToken}`) with pet owners
+- **Owner intake** — Owners complete intake form (pet name, symptoms, duration, concerns)
+- **Vet sees intake** — Owner intake data appears in vet view before recording
+- **Share summary** — Vet can share completed report with owner via visit link
+- **Supabase persistence** — All visit data stored in Supabase for reliability
+
+### 👤 Owner Platform
+
+Two owner-facing pages accessible via visit token:
+
+- **Owner Intake Page** (`/owner/:visitToken`) — Pre-visit intake form
+  - Pet name, symptoms, duration, additional concerns
+  - Form validation and error handling
+  - Confirmation screen after submission
+  
+- **Owner Summary Page** (`/owner/:visitToken/summary`) — Post-visit summary
+  - Read-only view of intake information
+  - Visit status indicators
+  - Clinical assessment (when shared by vet)
+  - Mobile-first responsive design
+
 ---
 
 ## 🏗️ Architecture
@@ -85,11 +114,12 @@ flowchart TB
         WSA[Web Speech API]
         MR[MediaRecorder]
         SW[Service Worker]
-        IDB[(localStorage)]
+        IDB[(IndexedDB Session)]
     end
 
     subgraph external [External Services]
         Groq[Groq API]
+        Supabase[(Supabase Visits)]
     end
 
     UI --> WSA
@@ -100,6 +130,8 @@ flowchart TB
     Groq --> UI
     SW --> UI
     UI --> IDB
+    UI --> Supabase
+    Supabase --> UI
 ```
 
 ### Component Architecture
@@ -108,6 +140,8 @@ flowchart TB
 flowchart LR
     subgraph pages [Pages]
         HP[HomePage]
+        OIP[OwnerIntakePage]
+        OSP[OwnerSummaryPage]
     end
 
     subgraph components [Components]
@@ -137,6 +171,8 @@ flowchart LR
         GS[groq.ts]
         UD[urgencyDetection.ts]
         PDF[pdfGenerator.ts]
+        VS[visitStorage.ts]
+        SS[sessionStorage.ts]
     end
 
     HP --> HD
@@ -161,47 +197,89 @@ flowchart LR
     DB --> PDF
     HP --> GS
     UUP --> UD
+    HP --> VS
+    OIP --> VS
+    OSP --> VS
 ```
 
 ---
 
 ## 🔄 User Flow
 
+### Vet Workflow
+
 ```mermaid
 sequenceDiagram
-    participant U as User
+    participant V as Vet
     participant App as VetTriage
     participant WSA as Web Speech API
     participant MR as MediaRecorder
     participant AI as Groq AI
+    participant Supabase as Supabase
     participant PDF as PDF Generator
 
-    U->>App: Open app
-    App->>U: Show API key modal (first time)
-    U->>App: Enter Groq API key
+    V->>App: Open app
+    App->>V: Show API key modal (first time)
+    V->>App: Enter Groq API key
 
-    U->>App: Tap Record
+    V->>App: Click "Create Visit Link"
+    App->>Supabase: Create visit with unique token
+    Supabase->>App: Return visit token
+    App->>V: Display shareable owner URL
+
+    V->>App: Tap Record
     App->>WSA: Start transcription
     App->>MR: Start audio capture
 
     loop During conversation
         WSA->>App: Interim transcript
-        App->>U: Show live text (italic)
+        App->>V: Show live text (italic)
         WSA->>App: Final transcript
-        App->>U: Show confirmed text with speaker label
+        App->>V: Show confirmed text with speaker label
     end
 
-    U->>App: Tap Stop
+    V->>App: Tap Stop
     App->>WSA: Stop transcription
     App->>MR: Stop recording
     App->>AI: Send transcript for analysis
     AI->>App: Return structured JSON
-    App->>U: Show editable report
+    App->>V: Show editable report with owner intake (if available)
 
-    U->>App: Edit fields (optional)
-    U->>App: Tap Download PDF
+    V->>App: Edit fields (optional)
+    V->>App: Click "Share with Owner"
+    App->>Supabase: Update visit status to 'shared'
+    V->>App: Tap Download PDF
     App->>PDF: Generate report
-    PDF->>U: Download file
+    PDF->>V: Download file
+```
+
+### Owner Workflow
+
+```mermaid
+sequenceDiagram
+    participant O as Owner
+    participant App as VetTriage
+    participant Supabase as Supabase
+
+    O->>App: Open visit link (/owner/:visitToken)
+    App->>Supabase: Load visit by token
+    Supabase->>App: Return visit data
+
+    alt Intake not submitted
+        App->>O: Show intake form
+        O->>App: Fill form (pet name, symptoms, duration, concerns)
+        O->>App: Submit intake
+        App->>Supabase: Save intake data, update status
+        App->>O: Show confirmation
+        O->>App: Click "View Summary"
+    end
+
+    App->>O: Show summary page
+    alt Status is 'shared'
+        App->>O: Display clinical assessment
+    else Status is 'intake_complete'
+        App->>O: Show "Pending veterinary review"
+    end
 ```
 
 ---
@@ -213,10 +291,13 @@ sequenceDiagram
 | **Framework**     | React 18 + TypeScript | UI components with type safety   |
 | **Build**         | Vite                  | Fast HMR, PWA plugin             |
 | **Styling**       | Tailwind CSS          | Mobile-first utility classes     |
+| **Routing**       | React Router DOM      | Client-side routing for owner platform |
 | **Transcription** | Web Speech API        | Browser-native voice recognition |
 | **Audio**         | MediaRecorder API     | Parallel audio capture           |
 | **AI**            | Groq (Llama 3.3 70B)  | Structured data extraction       |
 | **PDF**           | jsPDF                 | Client-side PDF generation       |
+| **Database**      | Supabase              | Visit data persistence           |
+| **Session Storage** | IndexedDB          | Client-side session persistence  |
 | **PWA**           | vite-plugin-pwa       | Service worker, manifest         |
 
 ---
@@ -254,7 +335,11 @@ VetTriage/
 │   │   ├── useSpeechRecognition.ts # Web Speech API wrapper
 │   │   └── useUrgencyPulse.ts    # Real-time urgency analysis
 │   ├── pages/
-│   │   └── HomePage.tsx       # Main application page
+│   │   ├── HomePage.tsx       # Main vet-facing application page
+│   │   ├── OwnerIntakePage.tsx # Owner intake form page
+│   │   └── OwnerSummaryPage.tsx # Owner summary view page
+│   ├── lib/
+│   │   └── supabase.ts        # Supabase client configuration
 │   ├── prompts/
 │   │   ├── veterinary-intake.ts # AI system prompt
 │   │   └── urgency-detection.ts # Lightweight urgency prompt
@@ -263,11 +348,13 @@ VetTriage/
 │   │   ├── urgencyDetection.ts # Real-time urgency analysis
 │   │   ├── rateLimiter.ts     # Global rate limiting for API calls
 │   │   ├── pdfGenerator.ts    # jsPDF report builder
-│   │   └── sessionStorage.ts  # IndexedDB session persistence
+│   │   ├── sessionStorage.ts  # IndexedDB session persistence
+│   │   └── visitStorage.ts    # Supabase visit data management
 │   ├── types/
 │   │   ├── report.ts          # IntakeReport interface
 │   │   ├── transcript.ts       # Transcript segment types
-│   │   └── urgency.ts          # Urgency level types
+│   │   ├── urgency.ts          # Urgency level types
+│   │   └── visit.ts            # Visit and intake data types
 │   ├── utils/
 │   │   ├── browserSupport.ts  # Feature detection
 │   │   ├── formatters.ts      # Date/time utilities
@@ -277,6 +364,10 @@ VetTriage/
 │   ├── main.tsx               # Entry point
 │   ├── index.css              # Tailwind imports
 │   └── vite-env.d.ts          # TypeScript declarations
+├── supabase/
+│   ├── migrations/
+│   │   └── 001_create_visits_table.sql # Supabase visits table migration
+│   └── README.md              # Migration instructions
 ├── index.html                 # HTML template
 ├── vite.config.ts             # Vite + PWA config
 ├── tailwind.config.js         # Tailwind config
@@ -293,6 +384,7 @@ VetTriage/
 - Node.js 18+
 - npm or pnpm
 - Groq API key ([get one free](https://console.groq.com/keys))
+- Supabase project ([create one free](https://supabase.com))
 
 ### Installation
 
@@ -304,17 +396,27 @@ cd VetTriage
 # Install dependencies
 npm install
 
+# Set up Supabase
+# 1. Create a Supabase project at https://supabase.com
+# 2. Run the migration: supabase/migrations/001_create_visits_table.sql
+# 3. Get your project URL and anon key from Supabase dashboard
+# 4. Add them to .env file
+
 # Start development server
 npm run dev
 ```
 
 ### Environment Setup
 
-Create a `.env` file (optional — you can also enter the key in the app):
+Create a `.env` file:
 
 ```env
 VITE_GROQ_API_KEY=gsk_your_key_here
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
+
+**Note:** The Groq API key can also be entered in the app UI on first launch.
 
 ### Build for Production
 
@@ -387,6 +489,20 @@ npm run preview  # Test production build locally
 - Perfect for testing and demos without recording
 - Click "Analyze Transcript" to test the full workflow
 
+### 9. Visit Management (Vet)
+
+- **Create Visit Link** — Click to generate a unique visit token and shareable owner URL
+- **View Owner Intake** — Owner intake data appears above report when available
+- **Share Summary** — Click "Share with Owner" to make summary visible to owner
+- **Copy URL** — One-click copy of owner visit link
+
+### 10. Owner Platform
+
+- **Access via visit token** — Owners use link: `/owner/{visitToken}`
+- **Complete intake form** — Submit pet name, symptoms, duration, concerns
+- **View summary** — Access summary at `/owner/{visitToken}/summary`
+- **Status tracking** — See visit status (Pending Intake, Intake Complete, Shared, etc.)
+
 ---
 
 ## 🔌 API Reference
@@ -420,6 +536,27 @@ POST https://api.groq.com/openai/v1/chat/completions
 ---
 
 ## 📊 Data Structures
+
+### Visit
+
+```typescript
+interface Visit {
+  id: string; // UUID
+  visitToken: string; // 12-character unique token
+  status: "pending_intake" | "intake_complete" | "in_progress" | "complete" | "shared";
+  intakeData: IntakeData | null;
+  createdAt: string; // ISO timestamp
+  updatedAt: string; // ISO timestamp
+}
+
+interface IntakeData {
+  petName: string;
+  symptoms: string;
+  duration: string;
+  concerns: string;
+  submittedAt: string; // ISO timestamp
+}
+```
 
 ### IntakeReport
 
@@ -529,9 +666,10 @@ If you see "Rate limit exceeded" errors:
 
 ## 🔒 Privacy & Security
 
-- **No backend** — All processing happens in the browser
+- **Minimal backend** — Visit data stored in Supabase, all AI processing in browser
 - **API key stored locally** — Never transmitted except to Groq
 - **Audio not uploaded** — Recorded audio stays on device
+- **Visit tokens** — Unique, unguessable tokens for owner access (no auth required)
 - **No analytics** — Zero tracking or telemetry
 - **Offline capable** — App shell cached for offline use
 
