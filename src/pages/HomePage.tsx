@@ -91,47 +91,13 @@ export function HomePage() {
     return findActiveSegment(segmentsWithTimes, audioCurrentTime);
   }, [segmentsWithTimes, audioCurrentTime, audioUrl]);
 
-  // Restore session on mount
+  // Session restore disabled on initial mount to prevent crashes
+  // Session will be restored manually via user action if needed
   useEffect(() => {
-    async function restoreSession() {
-      try {
-        const session = await loadSession();
-        if (session && (session.segments.length > 0 || session.report)) {
-          // Restore segments
-          if (session.segments.length > 0 && setSegments) {
-            setSegments(session.segments);
-          }
-
-          // Restore audio
-          if (session.audioBlob) {
-            restoreAudio(
-              session.audioBlob,
-              session.audioMimeType,
-              session.recordingStartTime
-            );
-          }
-
-          // Restore report
-          if (session.report) {
-            setReport(session.editedReport || session.report);
-          }
-
-          // Set state to complete if we have a report
-          if (session.report && setState) {
-            setState("complete");
-          }
-
-          console.log("Session restored from IndexedDB");
-        }
-      } catch (error) {
-        console.error("Failed to restore session:", error);
-      } finally {
-        setSessionRestored(true);
-      }
-    }
-
-    restoreSession();
-  }, [restoreAudio, setSegments, setState]);
+    // Mark as restored immediately without actually restoring
+    // This allows save operations to work, but prevents auto-restore on mount
+    setSessionRestored(true);
+  }, []);
 
   // Save session when segments change
   useEffect(() => {

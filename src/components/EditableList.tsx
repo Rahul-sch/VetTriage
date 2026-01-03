@@ -15,13 +15,16 @@ export function EditableList({
   ordered = false,
   placeholder = "No items",
 }: EditableListProps) {
+  // Defensive: ensure items is always an array
+  const safeItems = Array.isArray(items) ? items : [];
+  
   const [isEditing, setIsEditing] = useState(false);
-  const [editItems, setEditItems] = useState(items);
+  const [editItems, setEditItems] = useState(safeItems);
 
   const handleSave = () => {
     setIsEditing(false);
     const filtered = editItems.filter((item) => item.trim());
-    if (JSON.stringify(filtered) !== JSON.stringify(items)) {
+    if (JSON.stringify(filtered) !== JSON.stringify(safeItems)) {
       onSave(filtered);
     }
   };
@@ -86,16 +89,16 @@ export function EditableList({
   return (
     <div
       onClick={() => {
-        setEditItems(items.length > 0 ? items : [""]);
+        setEditItems(safeItems.length > 0 ? safeItems : [""]);
         setIsEditing(true);
       }}
       className="cursor-pointer px-2 py-1 -mx-2 -my-1 rounded hover:bg-slate-100 transition-colors group"
     >
-      {items.length > 0 ? (
+      {safeItems.length > 0 ? (
         <ListTag
           className={`${ordered ? "list-decimal" : "list-disc"} list-inside text-slate-700 space-y-1`}
         >
-          {items.map((item, i) => (
+          {safeItems.map((item, i) => (
             <li key={i}>{item}</li>
           ))}
         </ListTag>

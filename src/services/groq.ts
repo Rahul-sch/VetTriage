@@ -94,8 +94,16 @@ function normalizeConfidentField<T>(
   if (typeof raw === "object" && raw !== null && "value" in raw && "confidence" in raw) {
     const field = raw as RawConfidentField<T>;
     const score = Math.max(0, Math.min(1, field.confidence.score || 0));
+    let normalizedValue = field.value ?? defaultValue;
+    
+    // Normalize: if default is array and value is string "Not mentioned", convert to empty array
+    if (Array.isArray(defaultValue) && typeof normalizedValue === "string" && 
+        (normalizedValue === "Not mentioned" || normalizedValue === "None" || normalizedValue === "")) {
+      normalizedValue = [] as unknown as T;
+    }
+    
     return {
-      value: field.value ?? defaultValue,
+      value: normalizedValue,
       confidence: {
         score,
         level: getConfidenceLevel(score),
@@ -105,8 +113,16 @@ function normalizeConfidentField<T>(
   }
 
   // Fallback: AI returned plain value without confidence wrapper
+  let normalizedValue = raw as T;
+  
+  // Normalize: if default is array and value is string "Not mentioned", convert to empty array
+  if (Array.isArray(defaultValue) && typeof normalizedValue === "string" && 
+      (normalizedValue === "Not mentioned" || normalizedValue === "None" || normalizedValue === "")) {
+    normalizedValue = [] as unknown as T;
+  }
+  
   return {
-    value: raw as T,
+    value: normalizedValue,
     confidence: {
       score: 0.7,
       level: "medium" as ConfidenceLevel,
@@ -172,10 +188,22 @@ function transformToReport(raw: Record<string, unknown>): IntakeReport {
       raw.duration as RawConfidentField<string>,
       "Not mentioned"
     ),
-    severity: normalizeConfidentField(
-      raw.severity as RawConfidentField<"mild" | "moderate" | "severe" | "critical">,
-      "moderate"
-    ),
+    severity: (() => {
+      const field = normalizeConfidentField(
+        raw.severity as RawConfidentField<"mild" | "moderate" | "severe" | "critical">,
+        "moderate"
+      );
+      // Validate enum: if value is not a valid enum, use default
+      const validSeverities = ["mild", "moderate", "severe", "critical"];
+      if (typeof field.value === "string" && !validSeverities.includes(field.value)) {
+        console.warn(`Invalid severity value: ${field.value}, using default "moderate"`);
+        return {
+          ...field,
+          value: "moderate" as const,
+        };
+      }
+      return field;
+    })(),
     medicalHistory: normalizeConfidentField(
       raw.medicalHistory as RawConfidentField<string>,
       "Not mentioned"
@@ -200,9 +228,32 @@ function transformToReport(raw: Record<string, unknown>): IntakeReport {
       raw.recommendedActions as RawConfidentField<string[]>,
       []
     ),
-    urgencyLevel: normalizeConfidentField(
-      raw.urgencyLevel as RawConfidentField<1 | 2 | 3 | 4 | 5>,
-      3
+    urgencyLevel: (() => {
+      const field = normalizeConfidentField(
+        raw.urgencyLevel as RawConfidentField<1 | 2 | 3 | 4 | 5>,
+        3
+      );
+      // Validate enum: if value is not 1-5, use default
+      if (typeof field.value === "number" && (field.value < 1 || field.value > 5)) {
+        console.warn(`Invalid urgency level: ${field.value}, using default 3`);
+        return {
+          ...field,
+          value: 3 as const,
+        };
+      }
+      // Handle case where AI returns string "Not mentioned" or invalid type
+      if (typeof field.value !== "number") {
+        console.warn(`Invalid urgency level type: ${typeof field.value}, using default 3`);
+        return {
+          ...field,
+          value: 3 as const,
+        };
+      }
+      return field;
+    })(),
+    recommendedActions: normalizeConfidentField(
+      raw.recommendedActions as RawConfidentField<string[]>,
+      []
     ),
     notes: normalizeConfidentField(
       raw.notes as RawConfidentField<string>,
