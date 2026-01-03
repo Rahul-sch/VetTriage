@@ -26,21 +26,30 @@ export function OwnerSummaryPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!visitToken) {
-      setIsLoading(false);
-      return;
+    async function loadVisit() {
+      if (!visitToken) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const foundVisit = await getVisitByToken(visitToken);
+        
+        if (!foundVisit) {
+          // Visit not found, redirect to intake
+          navigate(`/owner/${visitToken}`, { replace: true });
+          return;
+        }
+
+        setVisit(foundVisit);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Failed to load visit:", error);
+        setIsLoading(false);
+      }
     }
 
-    const foundVisit = getVisitByToken(visitToken);
-    
-    if (!foundVisit) {
-      // Visit not found, redirect to intake
-      navigate(`/owner/${visitToken}`, { replace: true });
-      return;
-    }
-
-    setVisit(foundVisit);
-    setIsLoading(false);
+    loadVisit();
   }, [visitToken, navigate]);
 
   if (isLoading) {

@@ -25,46 +25,60 @@ export function OwnerIntakePage() {
 
   // Load visit on mount
   useEffect(() => {
-    if (!visitToken) {
-      setIsLoading(false);
-      return;
+    async function loadVisit() {
+      if (!visitToken) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const currentVisit = await getVisitByToken(visitToken);
+        
+        if (!currentVisit) {
+          // Visit not found - in production, visits would be created server-side
+          // For now, we'll show an error state
+          setIsLoading(false);
+          return;
+        }
+
+        setVisit(currentVisit);
+
+        // If visit already has intake data, redirect to summary
+        if (currentVisit.intakeData) {
+          navigate(`/owner/${visitToken}/summary`, { replace: true });
+          return;
+        }
+
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Failed to load visit:", error);
+        setIsLoading(false);
+      }
     }
 
-    const currentVisit = getVisitByToken(visitToken);
-    
-    if (!currentVisit) {
-      // Visit not found - in production, visits would be created server-side
-      // For now, we'll show an error state
-      setIsLoading(false);
-      return;
-    }
-
-    setVisit(currentVisit);
-
-    // If visit already has intake data, redirect to summary
-    if (currentVisit.intakeData) {
-      navigate(`/owner/${visitToken}/summary`, { replace: true });
-      return;
-    }
-
-    setIsLoading(false);
+    loadVisit();
   }, [visitToken, navigate]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!visitToken) return;
 
-    // Submit intake data and update visit status
-    const updatedVisit = submitIntakeData(visitToken, {
-      petName: formData.petName,
-      symptoms: formData.symptoms,
-      duration: formData.duration,
-      concerns: formData.concerns,
-    });
+    try {
+      // Submit intake data and update visit status
+      const updatedVisit = await submitIntakeData(visitToken, {
+        petName: formData.petName,
+        symptoms: formData.symptoms,
+        duration: formData.duration,
+        concerns: formData.concerns,
+      });
 
-    if (updatedVisit) {
-      setVisit(updatedVisit);
-      setIsSubmitted(true);
+      if (updatedVisit) {
+        setVisit(updatedVisit);
+        setIsSubmitted(true);
+      }
+    } catch (error) {
+      console.error("Failed to submit intake:", error);
+      // TODO: Show error message to user
     }
   };
 
