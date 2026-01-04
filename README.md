@@ -6,28 +6,30 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![PWA](https://img.shields.io/badge/PWA-ready-blueviolet)](https://web.dev/progressive-web-apps/)
 
+![VetTriage UI](docs/vettriage-ui.png)
+
 ---
 
 ## ✨ Features
 
-| Feature                    | Description                                                    |
-| -------------------------- | -------------------------------------------------------------- |
-| 🎙️ **Voice Recording**     | Real-time transcription using Web Speech API                   |
-| 👥 **Speaker Diarization** | Automatically distinguishes Vet vs Owner based on speech turns |
-| 🎯 **AI Confidence Scoring** | Transparent confidence levels (high/medium/low) for all fields |
-| 🤖 **AI Analysis**         | Groq (Llama 3.3 70B) extracts structured intake data           |
-| 📄 **PDF Reports**         | Professional one-page intake reports with jsPDF                |
-| ✏️ **Editable Reports**    | Human-in-the-loop editing with change tracking                 |
-| 🎵 **Audio Timeline**      | Click transcript segments to jump in audio playback            |
+| Feature                       | Description                                                     |
+| ----------------------------- | --------------------------------------------------------------- |
+| 🎙️ **Voice Recording**        | Real-time transcription using Web Speech API                    |
+| 👥 **Speaker Diarization**    | Automatically distinguishes Vet vs Owner based on speech turns  |
+| 🎯 **AI Confidence Scoring**  | Transparent confidence levels (high/medium/low) for all fields  |
+| 🤖 **AI Analysis**            | Groq (Llama 3.3 70B) extracts structured intake data            |
+| 📄 **PDF Reports**            | Professional one-page intake reports with jsPDF                 |
+| ✏️ **Editable Reports**       | Human-in-the-loop editing with change tracking                  |
+| 🎵 **Audio Timeline**         | Click transcript segments to jump in audio playback             |
 | 📜 **Collapsible Transcript** | Full transcript view with diagnosis/recommendation highlighting |
-| 🧪 **Test Transcript**     | Always-available demo button to load mock conversation        |
-| 💾 **Session Persistence** | Auto-restore transcript, audio, and report across refreshes   |
-| 🔒 **Rate Limiting**       | Global rate limiter prevents API overload and 429 errors      |
-| 🔗 **Visit Token System**  | Unique visit tokens for owner-vet communication               |
-| 👤 **Owner Platform**      | Owner intake forms and summary viewing via shareable links    |
-| 💾 **Supabase Integration** | Visit data persisted in Supabase (replaces localStorage)       |
-| 📱 **PWA**                 | Installable, works offline (UI cached)                         |
-| 🌐 **Zero Setup**          | Just open the URL — no app store, no downloads                 |
+| 🧪 **Test Transcript**        | Always-available demo button to load mock conversation          |
+| 💾 **Session Persistence**    | Auto-restore transcript, audio, and report across refreshes     |
+| 🔒 **Rate Limiting**          | Global rate limiter prevents API overload and 429 errors        |
+| 🔗 **Visit Token System**     | Unique visit tokens for owner-vet communication                 |
+| 👤 **Owner Platform**         | Owner intake forms and summary viewing via shareable links      |
+| 💾 **Supabase Integration**   | Visit data persisted in Supabase (replaces localStorage)        |
+| 📱 **PWA**                    | Installable, works offline (UI cached)                          |
+| 🌐 **Zero Setup**             | Just open the URL — no app store, no downloads                  |
 
 ---
 
@@ -96,7 +98,6 @@ Two owner-facing pages accessible via visit token:
   - Pet name, symptoms, duration, additional concerns
   - Form validation and error handling
   - Confirmation screen after submission
-  
 - **Owner Summary Page** (`/owner/:visitToken/summary`) — Post-visit summary
   - Read-only view of intake information
   - Visit status indicators
@@ -286,19 +287,19 @@ sequenceDiagram
 
 ## 🛠️ Tech Stack
 
-| Layer             | Technology            | Purpose                          |
-| ----------------- | --------------------- | -------------------------------- |
-| **Framework**     | React 18 + TypeScript | UI components with type safety   |
-| **Build**         | Vite                  | Fast HMR, PWA plugin             |
-| **Styling**       | Tailwind CSS          | Mobile-first utility classes     |
-| **Routing**       | React Router DOM      | Client-side routing for owner platform |
-| **Transcription** | Web Speech API        | Browser-native voice recognition |
-| **Audio**         | MediaRecorder API     | Parallel audio capture           |
-| **AI**            | Groq (Llama 3.3 70B)  | Structured data extraction       |
-| **PDF**           | jsPDF                 | Client-side PDF generation       |
-| **Database**      | Supabase              | Visit data persistence           |
-| **Session Storage** | IndexedDB          | Client-side session persistence  |
-| **PWA**           | vite-plugin-pwa       | Service worker, manifest         |
+| Layer               | Technology            | Purpose                                |
+| ------------------- | --------------------- | -------------------------------------- |
+| **Framework**       | React 18 + TypeScript | UI components with type safety         |
+| **Build**           | Vite                  | Fast HMR, PWA plugin                   |
+| **Styling**         | Tailwind CSS          | Mobile-first utility classes           |
+| **Routing**         | React Router DOM      | Client-side routing for owner platform |
+| **Transcription**   | Web Speech API        | Browser-native voice recognition       |
+| **Audio**           | MediaRecorder API     | Parallel audio capture                 |
+| **AI**              | Groq (Llama 3.3 70B)  | Structured data extraction             |
+| **PDF**             | jsPDF                 | Client-side PDF generation             |
+| **Database**        | Supabase              | Visit data persistence                 |
+| **Session Storage** | IndexedDB             | Client-side session persistence        |
+| **PWA**             | vite-plugin-pwa       | Service worker, manifest               |
 
 ---
 
@@ -543,7 +544,12 @@ POST https://api.groq.com/openai/v1/chat/completions
 interface Visit {
   id: string; // UUID
   visitToken: string; // 12-character unique token
-  status: "pending_intake" | "intake_complete" | "in_progress" | "complete" | "shared";
+  status:
+    | "pending_intake"
+    | "intake_complete"
+    | "in_progress"
+    | "complete"
+    | "shared";
   intakeData: IntakeData | null;
   createdAt: string; // ISO timestamp
   updatedAt: string; // ISO timestamp
