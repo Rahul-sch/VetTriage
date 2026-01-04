@@ -16,7 +16,6 @@ import { useUrgencyPulse } from "../hooks/useUrgencyPulse";
 import { analyzeTranscript, hasApiKey } from "../services/groq";
 import {
   saveSession,
-  loadSession,
   clearSession,
 } from "../services/sessionStorage";
 import {
@@ -29,7 +28,6 @@ import { isInCooldown, getCooldownRemaining } from "../services/rateLimiter";
 import type { IntakeReport } from "../types/report";
 import {
   createVisit,
-  getVisitByToken,
   updateVisitStatus,
 } from "../services/visitStorage";
 import type { Visit } from "../types/visit";
@@ -66,7 +64,6 @@ export function HomePage() {
     startTime: recordingStartTime,
     startRecording: startAudioRecording,
     stopRecording: stopAudioRecording,
-    restoreAudio,
     reset: resetAudio,
   } = useAudioRecorder();
 

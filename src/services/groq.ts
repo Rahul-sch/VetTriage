@@ -258,9 +258,12 @@ function transformToReport(raw: Record<string, unknown>): IntakeReport {
         return {
           ...field,
           value: "moderate" as const,
-        };
+        } as ConfidentField<"mild" | "moderate" | "severe" | "critical">;
       }
-      return field;
+      return {
+        ...field,
+        value: field.value as "mild" | "moderate" | "severe" | "critical",
+      } as ConfidentField<"mild" | "moderate" | "severe" | "critical">;
     })(),
     medicalHistory: normalizeConfidentField(
       raw.medicalHistory as RawConfidentField<string>,
@@ -312,7 +315,7 @@ function transformToReport(raw: Record<string, unknown>): IntakeReport {
           value: 3 as const,
         };
       }
-      return field;
+      return field as ConfidentField<1 | 2 | 3 | 4 | 5>;
     })(),
     notes: normalizeConfidentField(raw.notes as RawConfidentField<string>, ""),
   };
