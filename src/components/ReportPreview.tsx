@@ -59,7 +59,7 @@ export function ReportPreview({
       {/* Header with urgency and download */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-slate-800">Intake Report</h2>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Intake Report</h2>
           <UrgencyBadge
             level={report.urgencyLevel.value}
             confidence={report.urgencyLevel.confidence}
@@ -67,7 +67,7 @@ export function ReportPreview({
           {hasEdits && (
             <button
               onClick={resetEdits}
-              className="text-xs px-2 py-1 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded"
+              className="text-xs px-2.5 py-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md font-medium transition-colors"
             >
               Reset edits
             </button>
@@ -78,10 +78,10 @@ export function ReportPreview({
             <button
               onClick={onShareSummary}
               disabled={!report}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all shadow-sm ${
                 !report
-                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                  : "text-white bg-purple-600 hover:bg-purple-700"
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-500"
+                  : "text-white bg-purple-600 hover:bg-purple-500 hover:shadow-md"
               }`}
               title={
                 !report
@@ -93,8 +93,8 @@ export function ReportPreview({
             </button>
           )}
           {visit && visit.status === "shared" && (
-            <span className="px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-100 rounded-lg">
-              ✓ Shared
+            <span className="px-4 py-2 text-sm font-semibold text-purple-700 bg-purple-100 dark:bg-purple-900/50 dark:text-purple-300 rounded-lg">
+              Shared
             </span>
           )}
           <DownloadButton report={report} />
@@ -102,15 +102,14 @@ export function ReportPreview({
       </div>
 
       {/* Confidence overview */}
-      <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 space-y-3 border border-slate-200 dark:border-slate-700">
         <ConfidenceBar score={overallConfidence} label="Overall Confidence" />
         <ConfidenceLegend />
       </div>
 
       {/* Edit instructions */}
-      <p className="text-xs text-slate-500 bg-slate-100 px-3 py-2 rounded-lg">
-        💡 Click any field to edit. Hover over indicators to see AI confidence
-        notes.
+      <p className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
+        Click any field to edit. Hover over indicators to see AI confidence notes.
       </p>
 
       {/* Patient Info Card */}
@@ -317,10 +316,10 @@ export function ReportPreview({
       ) : null}
 
       {/* Bottom download button for mobile */}
-      <div className="pt-4 pb-2">
+      <div className="pt-6 pb-2">
         <DownloadButton report={report} />
         {hasEdits && (
-          <p className="text-center text-xs text-slate-500 mt-2">
+          <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-3">
             PDF will include your edits
           </p>
         )}
@@ -343,14 +342,16 @@ function Card({
   return (
     <div
       className={`
-        rounded-xl p-4 shadow-sm border
+        rounded-xl p-5 shadow-sm border transition-colors
         ${
-          highlight ? "bg-teal-50 border-teal-200" : "bg-white border-slate-200"
+          highlight
+            ? "bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-700/50"
+            : "bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700"
         }
       `}
     >
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
           {title}
         </h3>
         {confidence && <ConfidenceIndicator confidence={confidence} />}
@@ -382,14 +383,14 @@ function ConfidentInfoItem({
   return (
     <div>
       <div className="flex items-center gap-1">
-        <span className="text-xs text-slate-500">{label}</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
         <ConfidenceIndicator confidence={field.confidence} />
       </div>
       <EditableField
         value={field.value || ""}
         onSave={onSave}
         isEdited={isEdited}
-        className="text-slate-700 font-medium"
+        className="text-slate-700 dark:text-slate-200 font-medium"
         placeholder="—"
       />
     </div>
@@ -404,11 +405,11 @@ function UrgencyBadge({
   confidence: ConfidenceMetadata;
 }) {
   const config: Record<number, { label: string; className: string }> = {
-    1: { label: "Routine", className: "bg-green-100 text-green-700" },
-    2: { label: "Low", className: "bg-blue-100 text-blue-700" },
-    3: { label: "Moderate", className: "bg-yellow-100 text-yellow-700" },
-    4: { label: "Urgent", className: "bg-orange-100 text-orange-700" },
-    5: { label: "Emergency", className: "bg-red-100 text-red-700" },
+    1: { label: "Routine", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300" },
+    2: { label: "Low", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300" },
+    3: { label: "Moderate", className: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300" },
+    4: { label: "Urgent", className: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300" },
+    5: { label: "Emergency", className: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" },
   };
 
   // Defensive: handle invalid or missing urgency level
@@ -420,7 +421,7 @@ function UrgencyBadge({
     console.warn(`Invalid urgency level: ${level}. Expected 1-5, got:`, level);
     // Render neutral fallback badge
     return (
-      <span className="px-3 py-1 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 bg-slate-100 text-slate-600">
+      <span className="px-3 py-1.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
         Unknown
         <ConfidenceIndicator confidence={confidence} />
       </span>
@@ -431,7 +432,7 @@ function UrgencyBadge({
 
   return (
     <span
-      className={`px-3 py-1 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 ${className}`}
+      className={`px-3 py-1.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 shadow-sm ${className}`}
     >
       {label} ({level}/5)
       <ConfidenceIndicator confidence={confidence} />
@@ -447,10 +448,10 @@ function SeverityBadge({
   confidence: ConfidenceMetadata;
 }) {
   const config: Record<string, { className: string }> = {
-    mild: { className: "bg-green-100 text-green-700" },
-    moderate: { className: "bg-yellow-100 text-yellow-700" },
-    severe: { className: "bg-orange-100 text-orange-700" },
-    critical: { className: "bg-red-100 text-red-700" },
+    mild: { className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300" },
+    moderate: { className: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300" },
+    severe: { className: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300" },
+    critical: { className: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" },
   };
 
   // Defensive: handle invalid or missing severity
@@ -470,7 +471,7 @@ function SeverityBadge({
     );
     // Render neutral fallback badge
     return (
-      <span className="px-2 py-0.5 rounded text-xs font-medium capitalize inline-flex items-center gap-1 bg-slate-100 text-slate-600">
+      <span className="px-2.5 py-1 rounded-md text-xs font-medium capitalize inline-flex items-center gap-1 bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
         Unknown
         <ConfidenceIndicator confidence={confidence} />
       </span>
@@ -481,7 +482,7 @@ function SeverityBadge({
 
   return (
     <span
-      className={`px-2 py-0.5 rounded text-xs font-medium capitalize inline-flex items-center gap-1 ${className}`}
+      className={`px-2.5 py-1 rounded-md text-xs font-semibold capitalize inline-flex items-center gap-1 ${className}`}
     >
       {severity}
       <ConfidenceIndicator confidence={confidence} />

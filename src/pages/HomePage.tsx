@@ -402,7 +402,7 @@ export function HomePage() {
     segmentsWithTimes.length > 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors">
       {/* Offline banner */}
       <OfflineBanner />
 
@@ -452,13 +452,13 @@ export function HomePage() {
         {/* Main content area - render based on state */}
         {state === "processing" ? (
           /* Loading state during analysis - always show spinner */
-          <div className="flex-1 w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-6">
+          <div className="flex-1 w-full max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 p-6 border border-slate-200 dark:border-slate-700">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold text-slate-700 mb-2">
+              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-2">
                 Analyzing Conversation...
               </h3>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Extracting structured data from transcript
               </p>
             </div>
@@ -468,48 +468,47 @@ export function HomePage() {
           <>
             {/* Owner Intake Data (if available) */}
             {currentVisit?.intakeData && currentVisit.intakeData.petName && (
-              <div className="w-full max-w-2xl mx-auto bg-blue-50 border border-blue-200 rounded-xl shadow-sm p-6 mb-4">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                  <span>📋</span>
+              <div className="w-full max-w-2xl mx-auto bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/50 rounded-xl shadow-sm p-6 mb-4">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                   Owner Intake Information
                 </h3>
                 <div className="space-y-3 text-sm">
                   {currentVisit.intakeData.petName && (
                     <div>
-                      <span className="font-medium text-slate-700">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
                         Pet Name:
                       </span>{" "}
-                      <span className="text-slate-800">
+                      <span className="text-slate-800 dark:text-slate-200">
                         {currentVisit.intakeData.petName}
                       </span>
                     </div>
                   )}
                   {currentVisit.intakeData.symptoms && (
                     <div>
-                      <span className="font-medium text-slate-700">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
                         Symptoms:
                       </span>
-                      <p className="text-slate-800 mt-1 whitespace-pre-wrap">
+                      <p className="text-slate-800 dark:text-slate-200 mt-1 whitespace-pre-wrap">
                         {currentVisit.intakeData.symptoms}
                       </p>
                     </div>
                   )}
                   {currentVisit.intakeData.duration && (
                     <div>
-                      <span className="font-medium text-slate-700">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
                         Duration:
                       </span>{" "}
-                      <span className="text-slate-800">
+                      <span className="text-slate-800 dark:text-slate-200">
                         {currentVisit.intakeData.duration}
                       </span>
                     </div>
                   )}
                   {currentVisit.intakeData.concerns && (
                     <div>
-                      <span className="font-medium text-slate-700">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
                         Additional Concerns:
                       </span>
-                      <p className="text-slate-800 mt-1 whitespace-pre-wrap">
+                      <p className="text-slate-800 dark:text-slate-200 mt-1 whitespace-pre-wrap">
                         {currentVisit.intakeData.concerns}
                       </p>
                     </div>
@@ -526,7 +525,7 @@ export function HomePage() {
           </>
         ) : state === "complete" && analysisError ? (
           /* Analysis error */
-          <div className="flex-1 w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm border-2 border-red-300 p-6">
+          <div className="flex-1 w-full max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 border-2 border-red-300 dark:border-red-500/50 p-6">
             <div className="text-center">
               <svg
                 className="w-12 h-12 text-red-400 mx-auto mb-3"
@@ -541,12 +540,12 @@ export function HomePage() {
                   d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                 />
               </svg>
-              <h3 className="text-lg font-semibold text-red-700 mb-2">
+              <h3 className="text-lg font-semibold text-red-700 dark:text-red-400 mb-2">
                 Analysis Failed
               </h3>
-              <p className="text-slate-600">{analysisError}</p>
+              <p className="text-slate-600 dark:text-slate-300">{analysisError}</p>
               {cooldownSeconds > 0 && (
-                <p className="text-sm text-amber-600 mt-2">
+                <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
                   Retry available in {cooldownSeconds} seconds...
                 </p>
               )}
@@ -554,7 +553,7 @@ export function HomePage() {
           </div>
         ) : state === "complete" ? (
           /* Fallback for complete state with no report or error - should not happen */
-          <div className="flex-1 w-full max-w-2xl mx-auto bg-white rounded-xl shadow-sm border-2 border-amber-300 p-6">
+          <div className="flex-1 w-full max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 border-2 border-amber-300 dark:border-amber-500/50 p-6">
             <div className="text-center">
               <svg
                 className="w-12 h-12 text-amber-400 mx-auto mb-3"
@@ -569,10 +568,10 @@ export function HomePage() {
                   d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <h3 className="text-lg font-semibold text-amber-700 mb-2">
+              <h3 className="text-lg font-semibold text-amber-700 dark:text-amber-400 mb-2">
                 No Report Available
               </h3>
-              <p className="text-slate-600 mb-4">
+              <p className="text-slate-600 dark:text-slate-300 mb-4">
                 Analysis completed but no report was generated. Please try
                 again.
               </p>
@@ -611,20 +610,20 @@ export function HomePage() {
             <button
               onClick={handleCreateVisit}
               disabled={isCreatingVisit}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              className={`px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
                 isCreatingVisit
-                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                  : "text-white bg-blue-600 hover:bg-blue-700"
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-500"
+                  : "text-white bg-blue-600 hover:bg-blue-500 shadow-sm hover:shadow-md"
               }`}
             >
-              {isCreatingVisit ? "Creating..." : "🔗 Create Visit Link"}
+              {isCreatingVisit ? "Creating..." : "Create Visit Link"}
             </button>
           )}
 
           {/* Visit URL display */}
           {visitUrl && (
-            <div className="w-full max-w-md bg-white border border-teal-200 rounded-lg p-4 space-y-2">
-              <p className="text-xs font-medium text-slate-700">
+            <div className="w-full max-w-md bg-white dark:bg-slate-800 border border-teal-200 dark:border-teal-700/50 rounded-xl p-4 space-y-2 shadow-sm">
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Owner Visit Link:
               </p>
               <div className="flex items-center gap-2">
@@ -632,11 +631,11 @@ export function HomePage() {
                   type="text"
                   readOnly
                   value={visitUrl}
-                  className="flex-1 px-3 py-1.5 text-xs font-mono bg-slate-50 border border-slate-300 rounded focus:outline-none"
+                  className="flex-1 px-3 py-2 text-xs font-mono bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 focus:outline-none"
                 />
                 <button
                   onClick={handleCopyVisitUrl}
-                  className="px-3 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded transition-colors"
+                  className="px-4 py-2 text-xs font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-700/50 rounded-lg transition-colors"
                 >
                   Copy
                 </button>
@@ -647,19 +646,19 @@ export function HomePage() {
           {/* Test transcript button - always available for demo/testing */}
           <button
             onClick={loadTestTranscript}
-            className="px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors"
+            className="px-4 py-2.5 text-sm font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-700/50 rounded-lg transition-colors"
           >
-            🧪 Load Test Transcript (Demo)
+            Load Test Transcript
           </button>
 
           {state === "idle" && segments.length > 0 && (
             <button
               onClick={analyzeLoadedTranscript}
               disabled={cooldownSeconds > 0}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              className={`px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
                 cooldownSeconds > 0
-                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                  : "text-white bg-teal-600 hover:bg-teal-700"
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-500"
+                  : "text-white bg-teal-600 hover:bg-teal-500 shadow-sm hover:shadow-md"
               }`}
             >
               {cooldownSeconds > 0

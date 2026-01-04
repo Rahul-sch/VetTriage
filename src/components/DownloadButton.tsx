@@ -15,12 +15,13 @@ export function DownloadButton({ report }: DownloadButtonProps) {
       onClick={handleDownload}
       className="
         flex items-center justify-center gap-2
-        bg-teal-600 hover:bg-teal-700
+        bg-teal-600 hover:bg-teal-500
         text-white font-semibold
         px-6 py-3 rounded-xl
-        shadow-lg hover:shadow-xl
+        shadow-lg hover:shadow-xl dark:shadow-teal-900/30
         transition-all duration-200
         active:scale-95
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900
         w-full sm:w-auto
       "
     >

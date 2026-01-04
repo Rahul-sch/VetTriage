@@ -10,7 +10,7 @@ const stateConfig: Record<
 > = {
   idle: {
     label: "Ready",
-    className: "bg-slate-200 text-slate-600",
+    className: "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
   },
   recording: {
     label: "Recording",
@@ -22,7 +22,7 @@ const stateConfig: Record<
   },
   complete: {
     label: "Complete",
-    className: "bg-green-500 text-white",
+    className: "bg-emerald-500 text-white",
   },
 };
 
@@ -32,8 +32,8 @@ export function StatusBadge({ state }: StatusBadgeProps) {
   return (
     <span
       className={`
-        px-3 py-1 rounded-full text-sm font-medium
-        transition-colors duration-200
+        px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide
+        transition-all duration-200 shadow-sm
         ${config.className}
       `}
     >

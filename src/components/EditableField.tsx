@@ -58,7 +58,7 @@ export function EditableField({
       ) => setEditValue(e.target.value),
       onBlur: handleSave,
       onKeyDown: handleKeyDown,
-      className: `w-full px-2 py-1 border border-teal-400 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 ${className}`,
+      className: `w-full px-2 py-1.5 border border-teal-400 dark:border-teal-500 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 ${className}`,
       placeholder,
     };
 
@@ -85,24 +85,24 @@ export function EditableField({
     <div
       onClick={() => setIsEditing(true)}
       className={`
-        cursor-pointer px-2 py-1 -mx-2 -my-1 rounded
-        hover:bg-slate-100 transition-colors
+        cursor-pointer px-2 py-1 -mx-2 -my-1 rounded-md
+        hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors
         group relative
         ${className}
       `}
     >
-      <span className={value ? "" : "text-slate-400 italic"}>
+      <span className={value ? "" : "text-slate-400 dark:text-slate-500 italic"}>
         {value || placeholder}
       </span>
-      
+
       {/* Edit hint */}
-      <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-slate-400">
+      <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-slate-400 dark:text-slate-500">
         <EditIcon />
       </span>
 
       {/* Edited indicator */}
       {isEdited && (
-        <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-600 rounded">
+        <span className="ml-2 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-300 rounded">
           Edited
         </span>
       )}

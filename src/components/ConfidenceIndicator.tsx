@@ -11,23 +11,29 @@ interface ConfidenceIndicatorProps {
 
 const levelConfig: Record<
   ConfidenceLevel,
-  { color: string; bgColor: string; label: string; icon: string }
+  { color: string; bgColor: string; label: string; icon: string; darkBgColor: string; darkColor: string }
 > = {
   high: {
     color: "text-emerald-700",
+    darkColor: "dark:text-emerald-300",
     bgColor: "bg-emerald-100",
+    darkBgColor: "dark:bg-emerald-900/50",
     label: "High confidence",
     icon: "✓",
   },
   medium: {
     color: "text-amber-700",
+    darkColor: "dark:text-amber-300",
     bgColor: "bg-amber-100",
+    darkBgColor: "dark:bg-amber-900/50",
     label: "Medium confidence",
     icon: "~",
   },
   low: {
     color: "text-red-700",
+    darkColor: "dark:text-red-300",
     bgColor: "bg-red-100",
+    darkBgColor: "dark:bg-red-900/50",
     label: "Low confidence",
     icon: "?",
   },
@@ -52,7 +58,7 @@ export function ConfidenceIndicator({
         type="button"
         className={`
           ${sizeClasses} rounded-full flex items-center justify-center
-          ${config.bgColor} ${config.color} font-bold
+          ${config.bgColor} ${config.darkBgColor} ${config.color} ${config.darkColor} font-bold
           cursor-help transition-transform hover:scale-110
         `}
         onMouseEnter={() => setShowTooltip(true)}
@@ -69,9 +75,8 @@ export function ConfidenceIndicator({
           className={`
             absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
             px-3 py-2 rounded-lg shadow-lg border
-            ${config.bgColor} ${config.color} border-current/20
+            ${config.bgColor} ${config.darkBgColor} ${config.color} ${config.darkColor} border-current/20
             text-xs whitespace-nowrap
-            animate-in fade-in slide-in-from-bottom-1 duration-150
           `}
         >
           <div className="font-semibold flex items-center gap-1.5">
@@ -90,9 +95,9 @@ export function ConfidenceIndicator({
             className={`
               absolute top-full left-1/2 -translate-x-1/2
               border-4 border-transparent
-              ${confidence.level === "high" ? "border-t-emerald-100" : ""}
-              ${confidence.level === "medium" ? "border-t-amber-100" : ""}
-              ${confidence.level === "low" ? "border-t-red-100" : ""}
+              ${confidence.level === "high" ? "border-t-emerald-100 dark:border-t-emerald-900/50" : ""}
+              ${confidence.level === "medium" ? "border-t-amber-100 dark:border-t-amber-900/50" : ""}
+              ${confidence.level === "low" ? "border-t-red-100 dark:border-t-red-900/50" : ""}
             `}
           />
         </div>
@@ -116,9 +121,9 @@ export function ConfidenceBar({ score, label }: ConfidenceBarProps) {
   const config = levelConfig[level];
 
   return (
-    <div className="flex items-center gap-2">
-      {label && <span className="text-xs text-slate-500">{label}</span>}
-      <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+    <div className="flex items-center gap-3">
+      {label && <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{label}</span>}
+      <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
         <div
           className={`h-full transition-all duration-300 ${
             level === "high"
@@ -130,7 +135,7 @@ export function ConfidenceBar({ score, label }: ConfidenceBarProps) {
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <span className={`text-xs font-medium ${config.color}`}>
+      <span className={`text-xs font-semibold ${config.color} ${config.darkColor}`}>
         {percentage}%
       </span>
     </div>
@@ -142,17 +147,17 @@ export function ConfidenceBar({ score, label }: ConfidenceBarProps) {
  */
 export function ConfidenceLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-      <span>Confidence:</span>
-      <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+      <span className="font-medium">Confidence:</span>
+      <div className="flex items-center gap-1.5">
         <span className="w-3 h-3 rounded-full bg-emerald-500" />
         <span>High (explicit)</span>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         <span className="w-3 h-3 rounded-full bg-amber-500" />
         <span>Medium (implied)</span>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         <span className="w-3 h-3 rounded-full bg-red-500" />
         <span>Low (inferred)</span>
       </div>

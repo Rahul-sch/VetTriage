@@ -49,18 +49,18 @@ export function TranscriptDisplay({
       <div
         className={`
           flex-1 w-full max-w-2xl mx-auto
-          bg-white rounded-xl shadow-sm
-          border-2 border-red-300
-          overflow-hidden
+          bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50
+          border-2 border-red-300 dark:border-red-500/50
+          overflow-hidden transition-colors
         `}
       >
         <div className="p-4 h-full overflow-y-auto min-h-[200px] max-h-[40vh] flex items-center justify-center">
           <div className="text-center">
             <ErrorIcon />
-            <p className="text-red-600 font-medium mt-2">
+            <p className="text-red-600 dark:text-red-400 font-medium mt-2">
               {getErrorMessage(error)}
             </p>
-            <p className="text-slate-500 text-sm mt-1">{getErrorHint(error)}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{getErrorHint(error)}</p>
           </div>
         </div>
       </div>
@@ -71,17 +71,17 @@ export function TranscriptDisplay({
     <div
       className={`
         flex-1 w-full max-w-2xl mx-auto
-        bg-white rounded-xl shadow-sm
+        bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50
         border-2 transition-colors duration-200
-        ${isRecording ? "border-red-300" : "border-slate-200"}
+        ${isRecording ? "border-red-300 dark:border-red-500/50" : "border-slate-200 dark:border-slate-700"}
         overflow-hidden flex flex-col
       `}
     >
       {/* Speaker indicator during recording */}
       {isRecording && (
-        <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 uppercase tracking-wide">
+            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-medium">
               Current Speaker:
             </span>
             <SpeakerBadge speaker={currentSpeaker} />
@@ -89,7 +89,7 @@ export function TranscriptDisplay({
           {onToggleSpeaker && (
             <button
               onClick={onToggleSpeaker}
-              className="text-xs px-2 py-1 rounded bg-slate-200 hover:bg-slate-300 text-slate-600 transition-colors"
+              className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-600 dark:text-slate-200 font-medium transition-colors"
             >
               Switch Speaker
             </button>
@@ -119,13 +119,13 @@ export function TranscriptDisplay({
                   }}
                   className={`
                     flex gap-2 p-2 -mx-2 rounded-lg transition-all
-                    ${isActive ? "bg-teal-50 ring-2 ring-teal-300" : ""}
-                    ${isClickable ? "cursor-pointer hover:bg-slate-50" : ""}
+                    ${isActive ? "bg-teal-50 dark:bg-teal-900/30 ring-2 ring-teal-300 dark:ring-teal-500/50" : ""}
+                    ${isClickable ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50" : ""}
                   `}
                 >
                   {/* Timestamp */}
                   {segment.relativeTime !== undefined && (
-                    <span className="text-xs text-slate-400 font-mono shrink-0 pt-1">
+                    <span className="text-xs text-slate-400 dark:text-slate-500 font-mono shrink-0 pt-1">
                       {formatTime(segment.relativeTime)}
                     </span>
                   )}
@@ -134,7 +134,7 @@ export function TranscriptDisplay({
                   <p
                     className={`
                       flex-1 leading-relaxed
-                      ${segment.speaker === "vet" ? "text-teal-800" : "text-amber-800"}
+                      ${segment.speaker === "vet" ? "text-teal-800 dark:text-teal-300" : "text-amber-800 dark:text-amber-300"}
                       ${isActive ? "font-medium" : ""}
                     `}
                   >
@@ -143,7 +143,7 @@ export function TranscriptDisplay({
 
                   {/* Play indicator for clickable segments */}
                   {isClickable && !isActive && (
-                    <span className="opacity-0 group-hover:opacity-100 text-slate-400">
+                    <span className="opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-500">
                       <PlaySmallIcon />
                     </span>
                   )}
@@ -154,14 +154,14 @@ export function TranscriptDisplay({
             {/* Interim transcript */}
             {interimTranscript && (
               <div className="flex gap-2 p-2 -mx-2">
-                <span className="text-xs text-slate-400 font-mono shrink-0 pt-1">
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-mono shrink-0 pt-1">
                   --:--
                 </span>
                 <SpeakerBadge speaker={currentSpeaker} compact />
                 <p
                   className={`
                     flex-1 leading-relaxed italic opacity-60
-                    ${currentSpeaker === "vet" ? "text-teal-600" : "text-amber-600"}
+                    ${currentSpeaker === "vet" ? "text-teal-600 dark:text-teal-400" : "text-amber-600 dark:text-amber-400"}
                   `}
                 >
                   {interimTranscript}
@@ -171,7 +171,7 @@ export function TranscriptDisplay({
           </div>
         ) : (
           <div className="h-full flex items-center justify-center">
-            <p className="text-slate-400 text-center">
+            <p className="text-slate-400 dark:text-slate-500 text-center">
               {isRecording ? (
                 <span className="flex items-center gap-2">
                   <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -187,18 +187,18 @@ export function TranscriptDisplay({
 
       {/* Legend */}
       {hasContent && !isRecording && (
-        <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center gap-4">
-          <span className="text-xs text-slate-500">Speakers:</span>
-          <div className="flex items-center gap-1">
+        <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 border-t border-slate-200 dark:border-slate-700 flex items-center gap-4">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Speakers:</span>
+          <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-teal-500" />
-            <span className="text-xs text-slate-600">Vet</span>
+            <span className="text-xs text-slate-600 dark:text-slate-300">Vet</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-amber-500" />
-            <span className="text-xs text-slate-600">Owner</span>
+            <span className="text-xs text-slate-600 dark:text-slate-300">Owner</span>
           </div>
           {hasAudio && (
-            <span className="text-xs text-slate-400 ml-auto">
+            <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">
               Click to jump
             </span>
           )}
@@ -228,7 +228,7 @@ function SpeakerBadge({
       <span
         className={`
           shrink-0 w-6 h-6 rounded-full flex items-center justify-center
-          text-[10px] font-bold text-white
+          text-[10px] font-bold text-white shadow-sm
           ${isVet ? "bg-teal-500" : "bg-amber-500"}
         `}
       >
@@ -240,8 +240,8 @@ function SpeakerBadge({
   return (
     <span
       className={`
-        px-2 py-0.5 rounded-full text-xs font-semibold
-        ${isVet ? "bg-teal-100 text-teal-700" : "bg-amber-100 text-amber-700"}
+        px-2.5 py-1 rounded-full text-xs font-semibold
+        ${isVet ? "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"}
       `}
     >
       {isVet ? "Vet" : "Owner"}

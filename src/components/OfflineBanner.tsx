@@ -6,7 +6,7 @@ export function OfflineBanner() {
   if (isOnline) return null;
 
   return (
-    <div className="bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium">
+    <div className="bg-amber-500 dark:bg-amber-600 text-white px-4 py-2.5 text-center text-sm font-medium shadow-sm">
       <span className="inline-flex items-center gap-2">
         <OfflineIcon />
         You're offline. Recording works, but AI analysis requires internet.

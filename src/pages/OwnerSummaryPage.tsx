@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getVisitByToken } from "../services/visitStorage";
+import { ThemeToggle } from "../components/ThemeToggle";
 import type { Visit } from "../types/visit";
 
 const STATUS_LABELS: Record<Visit["status"], string> = {
@@ -12,11 +13,11 @@ const STATUS_LABELS: Record<Visit["status"], string> = {
 };
 
 const STATUS_COLORS: Record<Visit["status"], string> = {
-  pending_intake: "bg-slate-100 text-slate-700",
-  intake_complete: "bg-blue-100 text-blue-700",
-  in_progress: "bg-amber-100 text-amber-700",
-  complete: "bg-green-100 text-green-700",
-  shared: "bg-purple-100 text-purple-700",
+  pending_intake: "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
+  intake_complete: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
+  in_progress: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
+  complete: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
+  shared: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300",
 };
 
 export function OwnerSummaryPage() {
@@ -61,16 +62,17 @@ export function OwnerSummaryPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
-        <header className="bg-teal-700 text-white px-4 py-3 shadow-md">
-          <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors">
+        <header className="bg-teal-700 dark:bg-slate-800 text-white px-4 py-3.5 shadow-md dark:shadow-slate-900/50">
+          <div className="max-w-2xl mx-auto flex items-center justify-between">
             <h1 className="text-xl font-bold tracking-tight">VetTriage</h1>
+            <ThemeToggle />
           </div>
         </header>
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-            <p className="text-slate-600">Loading visit summary...</p>
+            <p className="text-slate-600 dark:text-slate-400">Loading visit summary...</p>
           </div>
         </main>
       </div>
@@ -79,14 +81,15 @@ export function OwnerSummaryPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
-        <header className="bg-teal-700 text-white px-4 py-3 shadow-md">
-          <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors">
+        <header className="bg-teal-700 dark:bg-slate-800 text-white px-4 py-3.5 shadow-md dark:shadow-slate-900/50">
+          <div className="max-w-2xl mx-auto flex items-center justify-between">
             <h1 className="text-xl font-bold tracking-tight">VetTriage</h1>
+            <ThemeToggle />
           </div>
         </header>
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-sm p-6 text-center">
+          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 p-6 text-center border border-slate-200 dark:border-slate-700">
             <div className="mb-4">
               <svg
                 className="w-16 h-16 text-red-400 mx-auto"
@@ -102,13 +105,13 @@ export function OwnerSummaryPage() {
                 />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
               Error Loading Visit
             </h2>
-            <p className="text-slate-600 mb-4">{loadError}</p>
+            <p className="text-slate-600 dark:text-slate-300 mb-4">{loadError}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors"
+              className="px-4 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-500 transition-all shadow-sm hover:shadow-md"
             >
               Retry
             </button>
@@ -128,47 +131,48 @@ export function OwnerSummaryPage() {
     : "Unknown";
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-teal-700 text-white px-4 py-3 shadow-md">
-        <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors">
+      <header className="bg-teal-700 dark:bg-slate-800 text-white px-4 py-3.5 shadow-md dark:shadow-slate-900/50">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold tracking-tight">VetTriage</h1>
+          <ThemeToggle />
         </div>
       </header>
 
       <main className="flex-1 p-4">
         <div className="max-w-2xl mx-auto space-y-4">
           {/* Header Card */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 p-6 border border-slate-200 dark:border-slate-700">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-slate-800">
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                 Visit Summary
               </h2>
               <span
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
                   STATUS_COLORS[visit.status]
                 }`}
               >
                 {STATUS_LABELS[visit.status]}
               </span>
             </div>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               Visit Token:{" "}
-              <span className="font-mono text-slate-800">{visitToken}</span>
+              <span className="font-mono text-slate-800 dark:text-slate-200">{visitToken}</span>
             </p>
-            <p className="text-sm text-slate-600">Date: {visitDate}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Date: {visitDate}</p>
           </div>
 
           {intakeData ? (
             <>
               {/* Patient Info Card */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 p-6 border border-slate-200 dark:border-slate-700">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
                   Patient Information
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-slate-500">Pet Name</p>
-                    <p className="font-medium text-slate-800">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Pet Name</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-200">
                       {intakeData.petName}
                     </p>
                   </div>
@@ -176,14 +180,14 @@ export function OwnerSummaryPage() {
               </div>
 
               {/* Symptoms Card */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 p-6 border border-slate-200 dark:border-slate-700">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
                   Symptoms
                 </h3>
-                <p className="text-slate-700 whitespace-pre-wrap">
+                <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
                   {intakeData.symptoms}
                 </p>
-                <p className="mt-4 text-sm text-slate-600">
+                <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
                   <span className="font-medium">Duration:</span>{" "}
                   {intakeData.duration}
                 </p>
@@ -191,22 +195,22 @@ export function OwnerSummaryPage() {
 
               {/* Concerns Card */}
               {intakeData.concerns && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 p-6 border border-slate-200 dark:border-slate-700">
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
                     Additional Concerns
                   </h3>
-                  <p className="text-slate-700 whitespace-pre-wrap">
+                  <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
                     {intakeData.concerns}
                   </p>
                 </div>
               )}
 
               {/* Assessment Card */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 p-6 border border-slate-200 dark:border-slate-700">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
                   Clinical Assessment
                 </h3>
-                <p className="text-slate-700">
+                <p className="text-slate-700 dark:text-slate-300">
                   {visit.status === "shared"
                     ? "The veterinary assessment will be available here once the visit is complete."
                     : visit.status === "intake_complete" ||
@@ -217,12 +221,12 @@ export function OwnerSummaryPage() {
               </div>
             </>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <p className="text-slate-600 text-center">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/50 p-6 border border-slate-200 dark:border-slate-700">
+              <p className="text-slate-600 dark:text-slate-400 text-center">
                 Intake information not yet submitted.{" "}
                 <button
                   onClick={() => navigate(`/owner/${visitToken}`)}
-                  className="text-teal-600 hover:text-teal-700 underline"
+                  className="text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 underline font-medium"
                 >
                   Complete intake form
                 </button>
@@ -231,8 +235,8 @@ export function OwnerSummaryPage() {
           )}
 
           {/* Footer Note */}
-          <div className="bg-slate-100 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-600">
+          <div className="bg-slate-100 dark:bg-slate-800/50 rounded-xl p-4 text-center border border-slate-200 dark:border-slate-700">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               This summary is for informational purposes. Please contact your
               veterinarian for any urgent concerns.
             </p>

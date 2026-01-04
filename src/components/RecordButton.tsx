@@ -40,7 +40,7 @@ export function RecordButton({
           w-40 h-40 sm:w-48 sm:h-48
           rounded-full
           transition-all duration-300
-          ${isRecording ? "animate-ping-slow bg-red-200" : "bg-transparent"}
+          ${isRecording ? "animate-ping-slow bg-red-200 dark:bg-red-900/50" : "bg-transparent"}
         `}
       >
         {/* Main button */}
@@ -60,18 +60,18 @@ export function RecordButton({
             rounded-full
             flex items-center justify-center
             text-white font-semibold text-lg
-            shadow-lg
+            shadow-xl dark:shadow-2xl dark:shadow-black/30
             transition-all duration-200
             active:scale-95
-            focus:outline-none focus:ring-4 focus:ring-offset-2
+            focus:outline-none focus:ring-4 focus:ring-offset-2 dark:focus:ring-offset-slate-900
             ${
               isRecording
-                ? "bg-red-500 hover:bg-red-600 focus:ring-red-300"
+                ? "bg-red-500 hover:bg-red-600 focus:ring-red-300 dark:focus:ring-red-500/50"
                 : isProcessing
                 ? "bg-amber-500 cursor-not-allowed"
                 : isComplete
-                ? "bg-teal-600 hover:bg-teal-700 focus:ring-teal-300"
-                : "bg-teal-600 hover:bg-teal-700 focus:ring-teal-300"
+                ? "bg-teal-600 hover:bg-teal-500 focus:ring-teal-300 dark:focus:ring-teal-500/50"
+                : "bg-teal-600 hover:bg-teal-500 focus:ring-teal-300 dark:focus:ring-teal-500/50"
             }
           `}
         >
@@ -88,7 +88,7 @@ export function RecordButton({
       </div>
 
       {/* Instruction text */}
-      <p className="text-slate-500 text-sm">
+      <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
         {isProcessing
           ? "Analyzing conversation..."
           : isRecording
