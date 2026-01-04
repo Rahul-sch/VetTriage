@@ -1,10 +1,19 @@
-import type { IntakeReport, AnalysisResponse, ConfidentField, ConfidenceLevel } from "../types/report";
+import type {
+  IntakeReport,
+  AnalysisResponse,
+  ConfidentField,
+  ConfidenceLevel,
+} from "../types/report";
 import { getConfidenceLevel } from "../types/report";
 import {
   VETERINARY_INTAKE_SYSTEM_PROMPT,
   createUserPrompt,
 } from "../prompts/veterinary-intake";
-import { waitForRateLimit, markRequestComplete, setCooldown } from "./rateLimiter";
+import {
+  waitForRateLimit,
+  markRequestComplete,
+  setCooldown,
+} from "./rateLimiter";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = "llama-3.3-70b-versatile";
@@ -91,17 +100,27 @@ function normalizeConfidentField<T>(
   }
 
   // Check if it's a confident field structure
-  if (typeof raw === "object" && raw !== null && "value" in raw && "confidence" in raw) {
+  if (
+    typeof raw === "object" &&
+    raw !== null &&
+    "value" in raw &&
+    "confidence" in raw
+  ) {
     const field = raw as RawConfidentField<T>;
     const score = Math.max(0, Math.min(1, field.confidence.score || 0));
     let normalizedValue = field.value ?? defaultValue;
-    
+
     // Normalize: if default is array and value is string "Not mentioned", convert to empty array
-    if (Array.isArray(defaultValue) && typeof normalizedValue === "string" && 
-        (normalizedValue === "Not mentioned" || normalizedValue === "None" || normalizedValue === "")) {
+    if (
+      Array.isArray(defaultValue) &&
+      typeof normalizedValue === "string" &&
+      (normalizedValue === "Not mentioned" ||
+        normalizedValue === "None" ||
+        normalizedValue === "")
+    ) {
       normalizedValue = [] as unknown as T;
     }
-    
+
     return {
       value: normalizedValue,
       confidence: {
@@ -114,13 +133,18 @@ function normalizeConfidentField<T>(
 
   // Fallback: AI returned plain value without confidence wrapper
   let normalizedValue = raw as T;
-  
+
   // Normalize: if default is array and value is string "Not mentioned", convert to empty array
-  if (Array.isArray(defaultValue) && typeof normalizedValue === "string" && 
-      (normalizedValue === "Not mentioned" || normalizedValue === "None" || normalizedValue === "")) {
+  if (
+    Array.isArray(defaultValue) &&
+    typeof normalizedValue === "string" &&
+    (normalizedValue === "Not mentioned" ||
+      normalizedValue === "None" ||
+      normalizedValue === "")
+  ) {
     normalizedValue = [] as unknown as T;
   }
-  
+
   return {
     value: normalizedValue,
     confidence: {
@@ -164,17 +188,44 @@ function transformToReport(raw: Record<string, unknown>): IntakeReport {
 
   return {
     patient: {
-      name: normalizeConfidentField(patient.name as RawConfidentField<string>, "Not mentioned"),
-      species: normalizeConfidentField(patient.species as RawConfidentField<string>, "Not mentioned"),
-      breed: normalizeConfidentField(patient.breed as RawConfidentField<string>, "Not mentioned"),
-      age: normalizeConfidentField(patient.age as RawConfidentField<string>, "Not mentioned"),
-      weight: normalizeConfidentField(patient.weight as RawConfidentField<string>, "Not mentioned"),
-      sex: normalizeConfidentField(patient.sex as RawConfidentField<string>, "Not mentioned"),
+      name: normalizeConfidentField(
+        patient.name as RawConfidentField<string>,
+        "Not mentioned"
+      ),
+      species: normalizeConfidentField(
+        patient.species as RawConfidentField<string>,
+        "Not mentioned"
+      ),
+      breed: normalizeConfidentField(
+        patient.breed as RawConfidentField<string>,
+        "Not mentioned"
+      ),
+      age: normalizeConfidentField(
+        patient.age as RawConfidentField<string>,
+        "Not mentioned"
+      ),
+      weight: normalizeConfidentField(
+        patient.weight as RawConfidentField<string>,
+        "Not mentioned"
+      ),
+      sex: normalizeConfidentField(
+        patient.sex as RawConfidentField<string>,
+        "Not mentioned"
+      ),
     },
     owner: {
-      name: normalizeConfidentField(owner.name as RawConfidentField<string>, "Not mentioned"),
-      phone: normalizeConfidentField(owner.phone as RawConfidentField<string>, "Not mentioned"),
-      email: normalizeConfidentField(owner.email as RawConfidentField<string>, "Not mentioned"),
+      name: normalizeConfidentField(
+        owner.name as RawConfidentField<string>,
+        "Not mentioned"
+      ),
+      phone: normalizeConfidentField(
+        owner.phone as RawConfidentField<string>,
+        "Not mentioned"
+      ),
+      email: normalizeConfidentField(
+        owner.email as RawConfidentField<string>,
+        "Not mentioned"
+      ),
     },
     chiefComplaint: normalizeConfidentField(
       raw.chiefComplaint as RawConfidentField<string>,
@@ -190,13 +241,20 @@ function transformToReport(raw: Record<string, unknown>): IntakeReport {
     ),
     severity: (() => {
       const field = normalizeConfidentField(
-        raw.severity as RawConfidentField<"mild" | "moderate" | "severe" | "critical">,
+        raw.severity as RawConfidentField<
+          "mild" | "moderate" | "severe" | "critical"
+        >,
         "moderate"
       );
       // Validate enum: if value is not a valid enum, use default
       const validSeverities = ["mild", "moderate", "severe", "critical"];
-      if (typeof field.value === "string" && !validSeverities.includes(field.value)) {
-        console.warn(`Invalid severity value: ${field.value}, using default "moderate"`);
+      if (
+        typeof field.value === "string" &&
+        !validSeverities.includes(field.value)
+      ) {
+        console.warn(
+          `Invalid severity value: ${field.value}, using default "moderate"`
+        );
         return {
           ...field,
           value: "moderate" as const,
@@ -234,7 +292,10 @@ function transformToReport(raw: Record<string, unknown>): IntakeReport {
         3
       );
       // Validate enum: if value is not 1-5, use default
-      if (typeof field.value === "number" && (field.value < 1 || field.value > 5)) {
+      if (
+        typeof field.value === "number" &&
+        (field.value < 1 || field.value > 5)
+      ) {
         console.warn(`Invalid urgency level: ${field.value}, using default 3`);
         return {
           ...field,
@@ -243,7 +304,9 @@ function transformToReport(raw: Record<string, unknown>): IntakeReport {
       }
       // Handle case where AI returns string "Not mentioned" or invalid type
       if (typeof field.value !== "number") {
-        console.warn(`Invalid urgency level type: ${typeof field.value}, using default 3`);
+        console.warn(
+          `Invalid urgency level type: ${typeof field.value}, using default 3`
+        );
         return {
           ...field,
           value: 3 as const,
@@ -251,10 +314,7 @@ function transformToReport(raw: Record<string, unknown>): IntakeReport {
       }
       return field;
     })(),
-    notes: normalizeConfidentField(
-      raw.notes as RawConfidentField<string>,
-      ""
-    ),
+    notes: normalizeConfidentField(raw.notes as RawConfidentField<string>, ""),
   };
 }
 
@@ -295,7 +355,9 @@ export async function analyzeTranscript(
 ): Promise<AnalysisResponse> {
   // Single-flight lock: prevent concurrent calls
   if (isAnalyzing) {
-    console.log("analyzeTranscript: already in progress, skipping duplicate call");
+    console.log(
+      "analyzeTranscript: already in progress, skipping duplicate call"
+    );
     return {
       success: false,
       error: "Analysis already in progress. Please wait.",
@@ -410,8 +472,7 @@ export async function analyzeTranscript(
     console.error("Groq API error:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      error: error instanceof Error ? error.message : "Unknown error occurred.",
     };
   } finally {
     // Always mark request complete to release the lock
