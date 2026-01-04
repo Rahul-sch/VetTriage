@@ -8,6 +8,20 @@
 
 ![VetTriage UI](docs/vettriage-ui.png)
 
+### Application Screenshots
+
+#### Main Interface
+![Main Interface](docs/vettriage-main.png)
+*Clean, modern interface with recording controls and visit management*
+
+#### Transcript View
+![Transcript View](docs/vettriage-transcript.png)
+*Real-time transcript with speaker diarization (Vet/Owner) and conversation flow*
+
+#### AI-Generated Report
+![Report View](docs/vettriage-report.png)
+*Structured intake report with confidence scores, editable fields, and PDF download*
+
 ---
 
 ## ✨ Features
